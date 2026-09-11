@@ -37,8 +37,16 @@ declare function readLoomyCredential(authFile?: string): Promise<LoomyCredential
 interface LoomyModel {
   id: string;
   name: string;
-  contextWindow: number;
-  maxTokens: number;
+  /**
+   * Context window in tokens, exactly when the source carries one.
+   *
+   * Loomy's `/v1/models` fills `context_length` for chat models but leaves it
+   * off some image generators, and the offline snapshot should not invent
+   * numbers either — `undefined` means unknown, which the card renders as
+   * `未提供` instead of a plausible-looking guess.
+   */
+  contextWindow: number | undefined;
+  maxTokens: number | undefined;
   supportsImages: boolean;
   reasoning: boolean;
   /** Points multiplier Loomy prints in the model name — 3 for `x3.0`. */
@@ -217,8 +225,9 @@ interface LoomyWebModel {
   /** True for image generators: listed for reference, never served to DSH. */
   image?: boolean;
   /**
-   * Context window in tokens, when Loomy's list carries it. Absent on the
-   * fallback snapshot, so the card renders it only when present.
+   * Context window in tokens, when Loomy's list carries one. Absent means
+   * unknown — e.g. some image generators ship without `context_length` — and
+   * the card renders that as `未提供` rather than guessing.
    */
   contextWindow?: number;
 }

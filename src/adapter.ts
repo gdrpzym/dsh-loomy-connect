@@ -21,7 +21,10 @@ function modelFields(model: LoomyModel, baseUrl: string): Model<Api> {
     input: model.supportsImages ? ['text', 'image'] : ['text'],
     reasoning: model.reasoning,
     ...(model.reasoning ? { thinkingLevelMap: thinking as ThinkingLevelMap } : {}),
-    contextWindow: model.contextWindow, maxTokens: model.maxTokens, cost: noCost,
+    // pi-ai needs real numbers here for its truncation math, so unknown values
+    // fall back to Loomy's observed floor; the card, by contrast, shows the
+    // honest `未提供` when the catalog could not learn the real size.
+    contextWindow: model.contextWindow ?? 128_000, maxTokens: model.maxTokens ?? 16_384, cost: noCost,
   } as unknown as Model<Api>
 }
 

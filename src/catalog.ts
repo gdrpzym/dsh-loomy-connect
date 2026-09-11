@@ -7,8 +7,16 @@ import { LoomyUpstreamClient } from './upstream.ts'
 export interface LoomyModel {
   id: string
   name: string
-  contextWindow: number
-  maxTokens: number
+  /**
+   * Context window in tokens, exactly when the source carries one.
+   *
+   * Loomy's `/v1/models` fills `context_length` for chat models but leaves it
+   * off some image generators, and the offline snapshot should not invent
+   * numbers either — `undefined` means unknown, which the card renders as
+   * `未提供` instead of a plausible-looking guess.
+   */
+  contextWindow: number | undefined
+  maxTokens: number | undefined
   supportsImages: boolean
   reasoning: boolean
   /** Points multiplier Loomy prints in the model name — 3 for `x3.0`. */
@@ -39,7 +47,10 @@ const FALLBACK: readonly LoomyModel[] = [
   { id: 'qwen3.5-flash', name: 'Qwen3.5 Flash', contextWindow: 1_000_000, maxTokens: 65_536, supportsImages: true, reasoning: true },
 ]
 
-function positive(value: unknown, fallback: number): number { return typeof value === 'number' && value > 0 ? value : fallback }
+/** A positive number, or `undefined` when the source does not carry one. */
+function positiveOrUndefined(value: unknown): number | undefined {
+  return typeof value === 'number' && value > 0 ? value : undefined
+}
 
 /**
  * Loomy prints the billing rate inside the model name — `…（x3.0）`,
@@ -74,8 +85,8 @@ function fromApiEntry(entry: Record<string, unknown>): LoomyModel | undefined {
   return {
     id,
     name,
-    contextWindow: positive(entry.context_length, 128_000),
-    maxTokens: positive(entry.max_output_tokens, 16_384),
+    contextWindow: positiveOrUndefined(entry.context_length),
+    maxTokens: positiveOrUndefined(entry.max_output_tokens),
     supportsImages: input.includes('image'),
     reasoning: capabilities.reasoning === true,
     ...image ? { image: true } : {},
@@ -125,8 +136,8 @@ export function parseLoomyModels(text: string): readonly LoomyModel[] {
       result.push({
         id,
         name,
-        contextWindow: positive(limit?.context, 128_000),
-        maxTokens: positive(limit?.output, 16_384),
+        contextWindow: positiveOrUndefined(limit?.context),
+        maxTokens: positiveOrUndefined(limit?.output),
         supportsImages: input.includes('image'),
         reasoning: model.reasoning === true || typeof model.variants === 'object',
         ...!output.includes('text') ? { image: true } : {},

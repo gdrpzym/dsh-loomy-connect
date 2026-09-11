@@ -117,8 +117,8 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState<LoomyWebStatus>({ status: 'signed-out' })
   const [busy, setBusy] = useState(false)
-  /** Which of the two tabs (账户 / 模型) is showing. */
-  const [tab, setTab] = useState<'account' | 'models'>('account')
+  /** Which of the three tabs (账户 / 模型 / 生图) is showing. */
+  const [tab, setTab] = useState<'account' | 'models' | 'imagegen'>('account')
   const mounted = useRef(true)
   useEffect(() => {
     mounted.current = true
@@ -255,6 +255,15 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                     >
                       {t('tabModels')}
                     </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === 'imagegen'}
+                      className={withModifier(CSS.tab, CSS.tabActive, tab === 'imagegen')}
+                      onClick={() => setTab('imagegen')}
+                    >
+                      {t('tabImagegen')}
+                    </button>
                   </div>
                   {tab === 'account'
                     ? (
@@ -295,7 +304,8 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                         </div>
                       </>
                     )
-                    : (
+                    : tab === 'models'
+                      ? (
                       <div className={CSS.section}>
                         <div className={CSS.row}>
                           <h3 className={CSS.heading}>{t('modelsHeading')}</h3>
@@ -316,7 +326,7 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                                     </span>
                                     <span className={CSS.listMeta}>
                                       {model.contextWindow === undefined
-                                        ? null
+                                        ? <span className={CSS.ctx}>{t('modelsContextUnknown')}</span>
                                         : <span className={CSS.ctx}>{t('modelsContext', { size: formatContext(model.contextWindow) })}</span>}
                                       {model.rate === undefined
                                         ? null
@@ -334,7 +344,35 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                             </>
                           )}
                       </div>
-                    )}
+                      )
+                      : (
+                        <div className={CSS.section}>
+                          <div className={CSS.row}>
+                            <h3 className={CSS.heading}>{t('imagegenHeading')}</h3>
+                            {imageCount === 0 ? null : <Tag tone="neutral">{t('imagegenTag', { count: imageCount })}</Tag>}
+                          </div>
+                          <p className={CSS.text}>{t('imagegenComingSoon')}</p>
+                          {models === undefined
+                            ? null
+                            : imageCount === 0
+                              ? <p className={CSS.hint}>{t('imagegenNone')}</p>
+                              : (
+                                <>
+                                  <ul className={CSS.list}>
+                                    {models.filter(model => model.image === true).map(model => (
+                                      <li key={model.id} className={CSS.listItem}>
+                                        <span className={CSS.listMain}>
+                                          <span className={CSS.listName}>{modelName(model.name)}</span>
+                                          <span className={CSS.pill}>{t('imagegenPill')}</span>
+                                        </span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                  <p className={CSS.hint}>{t('imagegenHint', { count: imageCount })}</p>
+                                </>
+                              )}
+                        </div>
+                      )}
                 </>
               )
               : null}

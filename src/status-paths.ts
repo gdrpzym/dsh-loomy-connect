@@ -25,8 +25,9 @@ export interface LoomyWebModel {
   /** True for image generators: listed for reference, never served to DSH. */
   image?: boolean
   /**
-   * Context window in tokens, when Loomy's list carries it. Absent on the
-   * fallback snapshot, so the card renders it only when present.
+   * Context window in tokens, when Loomy's list carries one. Absent means
+   * unknown — e.g. some image generators ship without `context_length` — and
+   * the card renders that as `未提供` rather than guessing.
    */
   contextWindow?: number
 }
