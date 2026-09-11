@@ -83,6 +83,8 @@
 
 设置卡片在此基础上分为「账户」与「模型」两个标签页：「账户」展示登录态、脱敏手机号与积分余额（含永久 / 每日赠送）；「模型」列出每个模型的名称、类型（对话 / 图像）、倍率与优惠绿胶囊，以及上下文窗口（`contextWindow`，Loomy 的清单提供该字段时才显示）。标签页是卡片内的受控切换，不依赖任何官方 Tab 原语。
 
+图像类型模型不在 Loomy 的对话模型选择器里：它们由头像 / 封面 / PPT 等技能经独立的生图接口调用（例如 avatar-gen 技能对 `doubao-seedream-5-lite` 走 `…/images/generations`，基址是 `ossptest.voicecloud.cn/loomy/integration/api/v1` 而非对话用的 `loomyad.xunfei.cn`）。`/v1/models` 仍把它们列出来，插件据此标 `image: true` 并只作参考展示，不注册进 provider。
+
 读取顺序在 `apply()` 的 `reapply()` 里：**接口 → Loomy 生成的配置文件 → 内置快照**。接口失败（未登录、断网）时回落配置文件，配置文件也不存在（Windows 版 Loomy 根本不生成）时用内置快照，保证离线启动仍是一个可用的 provider。
 
 ### 登录态来源：macOS 与 Windows 不同
