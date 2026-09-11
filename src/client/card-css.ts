@@ -49,6 +49,11 @@ export const CSS = {
   pill: 'dlc_pill',
   refreshInner: 'dlc_refreshInner',
   refreshSpin: 'dlc_refreshSpin',
+  tabs: 'dlc_tabs',
+  tab: 'dlc_tab',
+  tabActive: 'dlc_tabActive',
+  typeChip: 'dlc_typeChip',
+  ctx: 'dlc_ctx',
 } as const
 
 const STYLESHEET = `
@@ -90,6 +95,15 @@ const STYLESHEET = `
 .dlc_refreshInner{display:inline-flex;align-items:center;gap:6px}
 .dlc_refreshSpin{animation:dlc_spin .7s linear infinite}
 @keyframes dlc_spin{to{transform:rotate(360deg)}}
+/* Two-tab switch (账户 / 模型). Plain buttons styled to the shell tokens — the
+   official settings shell ships no public tab primitive, and the card already
+   copies the shell chrome rather than importing it, so this stays consistent. */
+.dlc_tabs{display:flex;gap:4px;padding:10px 0 2px;border-top:.5px solid var(--dsw-alias-border-l2);margin-top:2px}
+.dlc_tab{appearance:none;font:inherit;cursor:pointer;background:0 0;border:0;color:var(--dsw-alias-label-tertiary);font-size:13px;font-weight:500;line-height:1.5;padding:6px 12px;border-radius:8px}
+.dlc_tab:hover{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}
+.dlc_tabActive{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
+.dlc_typeChip{padding:1px 8px;border-radius:999px;font-size:11px;line-height:18px;white-space:nowrap;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-tertiary)}
+.dlc_ctx{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5;white-space:nowrap;font-variant-numeric:tabular-nums}
 `
 
 /**

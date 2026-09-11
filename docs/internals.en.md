@@ -81,6 +81,8 @@ The settings card does the opposite: it strips the suffix from the displayed nam
 
 Models with `type: "image"` (or no text output modality) still appear in the card, marked as image, but are never registered with the provider: DSH is a chat surface. In practice 12 of the 14 models are servable.
 
+The card is further split into two tabs — **Account** and **Models**. Account shows sign-in state, masked phone, and credit balance (long-lived / daily). Models lists each model's name, type (chat / image), rate and promo as a green pill, and its context window (`contextWindow`, shown only when Loomy's list provides it). The tabs are an in-card controlled switch; no official Tab primitive is involved.
+
 `reapply()` resolves the catalog as **API → generated config file → built-in snapshot**. The API failing (signed out, offline) falls back to the config file, and when that is missing too — the Windows build never writes one — the built-in snapshot keeps an offline start usable.
 
 ### Sign-in source: macOS vs Windows

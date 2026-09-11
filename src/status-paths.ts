@@ -24,6 +24,11 @@ export interface LoomyWebModel {
   promo?: string
   /** True for image generators: listed for reference, never served to DSH. */
   image?: boolean
+  /**
+   * Context window in tokens, when Loomy's list carries it. Absent on the
+   * fallback snapshot, so the card renders it only when present.
+   */
+  contextWindow?: number
 }
 
 /** The JSON document the plugin card renders. */

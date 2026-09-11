@@ -82,6 +82,16 @@ function formatRate(rate: number): string {
   return `x${Number.isInteger(rate) ? rate.toFixed(1) : rate}`
 }
 
+/** Compact token count: 262144 → `262K`, 1_048_576 → `1M`. */
+function formatContext(value: number): string {
+  if (value >= 1_000_000) {
+    const millions = value / 1_000_000
+    return `${Math.round(millions * 10) / 10}M`
+  }
+  if (value >= 1000) return `${Math.round(value / 1000)}K`
+  return String(value)
+}
+
 /**
  * Localize the promotional label Loomy prints, falling back to its own wording
  * for anything this card has no translation for yet.
@@ -107,6 +117,8 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState<LoomyWebStatus>({ status: 'signed-out' })
   const [busy, setBusy] = useState(false)
+  /** Which of the two tabs (账户 / 模型) is showing. */
+  const [tab, setTab] = useState<'account' | 'models'>('account')
   const mounted = useRef(true)
   useEffect(() => {
     mounted.current = true
@@ -224,69 +236,105 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
             {status.status === 'signed-in'
               ? (
                 <>
-                  <div className={CSS.section}>
-                    <h3 className={CSS.heading}>{t('pointsHeading')}</h3>
-                    {status.points === undefined
-                      ? <p className={CSS.text}>{t('pointsUnavailable')}</p>
-                      : (
-                        <>
-                          <div className={CSS.tiles}>
-                            <PointsTile
-                              label={t('permanentPoints')}
-                              value={status.points.permanent}
-                              hint={t('permanentPointsHint')}
-                            />
-                            <PointsTile
-                              label={t('dailyPoints')}
-                              value={status.points.daily}
-                              hint={t('dailyPointsHint')}
-                            />
-                          </div>
-                          {updatedMs === undefined || Number.isNaN(updatedMs)
-                            ? null
-                            : <p className={CSS.hint}>{t('updatedAt', { time: formatTime(updatedMs) })}</p>}
-                          <p className={CSS.hint}>{t('pointsSourceHint')}</p>
-                        </>
-                      )}
-                    {status.pointsError === undefined
-                      ? null
-                      : <p className={CSS.error}>{t('pointsError', { message: status.pointsError })}</p>}
+                  <div className={CSS.tabs} role="tablist">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === 'account'}
+                      className={withModifier(CSS.tab, CSS.tabActive, tab === 'account')}
+                      onClick={() => setTab('account')}
+                    >
+                      {t('tabAccount')}
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === 'models'}
+                      className={withModifier(CSS.tab, CSS.tabActive, tab === 'models')}
+                      onClick={() => setTab('models')}
+                    >
+                      {t('tabModels')}
+                    </button>
                   </div>
-                  <div className={CSS.section}>
-                    <div className={CSS.row}>
-                      <h3 className={CSS.heading}>{t('modelsHeading')}</h3>
-                      <Tag tone="neutral">{t('modelsTag', { count: status.modelCount })}</Tag>
-                    </div>
-                    {models === undefined
-                      ? null
-                      : (
-                        <>
-                          <ul className={CSS.list}>
-                            {models.map(model => (
-                              <li key={model.id} className={CSS.listItem}>
-                                <span className={CSS.listMain}>
-                                  <span className={CSS.listName}>{modelName(model.name)}</span>
-                                  {model.image === true
-                                    ? <span className={CSS.listNote}>{t('modelsImage')}</span>
-                                    : null}
-                                </span>
-                                <span className={CSS.listMeta}>
-                                  {model.rate === undefined
-                                    ? null
-                                    : <span className={CSS.pill}>{formatRate(model.rate)}</span>}
-                                  {model.promo === undefined
-                                    ? null
-                                    : <span className={CSS.pill}>{promoLabel(model.promo, t)}</span>}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                          {imageCount === 0
+                  {tab === 'account'
+                    ? (
+                      <>
+                        <div className={CSS.section}>
+                          <h3 className={CSS.heading}>{t('accountHeading')}</h3>
+                          <p className={CSS.text}>
+                            {status.account === undefined ? t('signedIn') : t('signedInAs', { account: status.account })}
+                          </p>
+                        </div>
+                        <div className={CSS.section}>
+                          <h3 className={CSS.heading}>{t('pointsHeading')}</h3>
+                          {status.points === undefined
+                            ? <p className={CSS.text}>{t('pointsUnavailable')}</p>
+                            : (
+                              <>
+                                <div className={CSS.tiles}>
+                                  <PointsTile
+                                    label={t('permanentPoints')}
+                                    value={status.points.permanent}
+                                    hint={t('permanentPointsHint')}
+                                  />
+                                  <PointsTile
+                                    label={t('dailyPoints')}
+                                    value={status.points.daily}
+                                    hint={t('dailyPointsHint')}
+                                  />
+                                </div>
+                                {updatedMs === undefined || Number.isNaN(updatedMs)
+                                  ? null
+                                  : <p className={CSS.hint}>{t('updatedAt', { time: formatTime(updatedMs) })}</p>}
+                                <p className={CSS.hint}>{t('pointsSourceHint')}</p>
+                              </>
+                            )}
+                          {status.pointsError === undefined
                             ? null
-                            : <p className={CSS.hint}>{t('modelsImageHint', { count: imageCount })}</p>}
-                        </>
-                      )}
-                  </div>
+                            : <p className={CSS.error}>{t('pointsError', { message: status.pointsError })}</p>}
+                        </div>
+                      </>
+                    )
+                    : (
+                      <div className={CSS.section}>
+                        <div className={CSS.row}>
+                          <h3 className={CSS.heading}>{t('modelsHeading')}</h3>
+                          <Tag tone="neutral">{t('modelsTag', { count: status.modelCount })}</Tag>
+                        </div>
+                        {models === undefined
+                          ? null
+                          : (
+                            <>
+                              <ul className={CSS.list}>
+                                {models.map(model => (
+                                  <li key={model.id} className={CSS.listItem}>
+                                    <span className={CSS.listMain}>
+                                      <span className={CSS.listName}>{modelName(model.name)}</span>
+                                      <span className={CSS.typeChip}>
+                                        {model.image === true ? t('modelsImage') : t('typeChat')}
+                                      </span>
+                                    </span>
+                                    <span className={CSS.listMeta}>
+                                      {model.contextWindow === undefined
+                                        ? null
+                                        : <span className={CSS.ctx}>{t('modelsContext', { size: formatContext(model.contextWindow) })}</span>}
+                                      {model.rate === undefined
+                                        ? null
+                                        : <span className={CSS.pill}>{formatRate(model.rate)}</span>}
+                                      {model.promo === undefined
+                                        ? null
+                                        : <span className={CSS.pill}>{promoLabel(model.promo, t)}</span>}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                              {imageCount === 0
+                                ? null
+                                : <p className={CSS.hint}>{t('modelsImageHint', { count: imageCount })}</p>}
+                            </>
+                          )}
+                      </div>
+                    )}
                 </>
               )
               : null}

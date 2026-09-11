@@ -69,6 +69,7 @@ export function apply(ctx: Context, config: ConfigShape = {}): void {
       ...model.rate === undefined ? {} : { rate: model.rate },
       ...model.promo === undefined ? {} : { promo: model.promo },
       ...model.image === true ? { image: true } : {},
+      ...model.contextWindow === undefined ? {} : { contextWindow: model.contextWindow },
     })),
     refresh: async () => {
       // The card's button is the only caller, but it can be clicked repeatedly:
