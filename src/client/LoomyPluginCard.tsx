@@ -64,6 +64,32 @@ function formatTime(ms: number): string {
   return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(ms))
 }
 
+/**
+ * The rate or promo Loomy appends to a model name — `…（x3.0）`, `…（限时免费）`.
+ *
+ * Mirrors the tags `catalog.ts` parses, anchored to the end so a name that
+ * legitimately contains parentheses keeps them.
+ */
+const NAME_TAG = /[（(]\s*(?:x\s*[0-9]+(?:\.[0-9]+)?|[^（）()]*免费[^（）()]*)\s*[）)]\s*$/u
+
+/** The model name without the rate tag, which the card shows in its own column. */
+function modelName(name: string): string {
+  return name.replace(NAME_TAG, '').trim()
+}
+
+/** Loomy's own spelling, one decimal: 3 → `x3.0`, 3.3 → `x3.3`. */
+function formatRate(rate: number): string {
+  return `x${Number.isInteger(rate) ? rate.toFixed(1) : rate}`
+}
+
+/**
+ * Localize the promotional label Loomy prints, falling back to its own wording
+ * for anything this card has no translation for yet.
+ */
+function promoLabel(promo: string, t: LoomyPluginCardInjected['t']): string {
+  return /免费/u.test(promo) ? t('badgeLimitedFree') : promo
+}
+
 /** One labelled number: the permanent or the daily-gift balance. */
 function PointsTile({ label, value, hint }: { label: string; value: number; hint: string }): ReactElement {
   return (
@@ -152,10 +178,7 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
         : t('signedOut')
   const rawUpdatedAt = status.status === 'signed-in' ? status.points?.updatedAt : undefined
   const updatedMs = rawUpdatedAt === undefined ? undefined : Date.parse(rawUpdatedAt)
-  // Loomy prints each model's rate inside its name, so listing the names is
-  // enough; the promo count is the only thing worth calling out separately.
   const models = status.status === 'signed-in' ? status.models : undefined
-  const freeCount = models === undefined ? 0 : models.filter(model => model.promo !== undefined).length
   return (
     <li className={withModifier(CSS.card, CSS.cardOpen, open)}>
       <button
@@ -238,16 +261,23 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                           <ul className={CSS.list}>
                             {models.map(model => (
                               <li key={model.id} className={CSS.listItem}>
-                                <span className={CSS.listName}>{model.name}</span>
-                                {model.image === true
-                                  ? <span className={CSS.listNote}>{t('modelsImage')}</span>
-                                  : null}
+                                <span className={CSS.listMain}>
+                                  <span className={CSS.listName}>{modelName(model.name)}</span>
+                                  {model.image === true
+                                    ? <span className={CSS.listNote}>{t('modelsImage')}</span>
+                                    : null}
+                                </span>
+                                <span className={CSS.listMeta}>
+                                  {model.rate === undefined
+                                    ? null
+                                    : <span className={CSS.listRate}>{formatRate(model.rate)}</span>}
+                                  {model.promo === undefined
+                                    ? null
+                                    : <span className={CSS.listPromo}>{promoLabel(model.promo, t)}</span>}
+                                </span>
                               </li>
                             ))}
                           </ul>
-                          {freeCount === 0
-                            ? null
-                            : <p className={CSS.hint}>{t('modelsFreeHint', { count: freeCount })}</p>}
                         </>
                       )}
                   </div>

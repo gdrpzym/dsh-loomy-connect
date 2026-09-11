@@ -42,8 +42,12 @@ export const CSS = {
   error: 'dlc_error',
   list: 'dlc_list',
   listItem: 'dlc_listItem',
+  listMain: 'dlc_listMain',
   listName: 'dlc_listName',
   listNote: 'dlc_listNote',
+  listMeta: 'dlc_listMeta',
+  listRate: 'dlc_listRate',
+  listPromo: 'dlc_listPromo',
   refreshInner: 'dlc_refreshInner',
   refreshSpin: 'dlc_refreshSpin',
 } as const
@@ -77,8 +81,14 @@ const STYLESHEET = `
 .dlc_error{color:var(--dsw-alias-state-error-primary);margin:0;font-size:12px;line-height:1.5}
 .dlc_list{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
 .dlc_listItem{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.dlc_listMain{display:flex;align-items:baseline;gap:6px;min-width:0}
 .dlc_listName{color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dlc_listNote{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5;flex:none}
+.dlc_listMeta{display:inline-flex;align-items:baseline;gap:6px;flex:none}
+/* Tabular figures keep the rates in one column instead of drifting with
+   however wide each digit happens to be. */
+.dlc_listRate{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5;font-variant-numeric:tabular-nums}
+.dlc_listPromo{padding:1px 8px;border-radius:999px;font-size:11px;line-height:18px;white-space:nowrap;background:var(--dsw-alias-state-success-subtle,rgba(34,160,107,.12));color:var(--dsw-alias-state-success-primary,#22a06b)}
 .dlc_refreshInner{display:inline-flex;align-items:center;gap:6px}
 .dlc_refreshSpin{animation:dlc_spin .7s linear infinite}
 @keyframes dlc_spin{to{transform:rotate(360deg)}}

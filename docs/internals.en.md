@@ -77,6 +77,8 @@ Limits: 64 MiB request body, 20-minute request ceiling, upstream aborted when th
 
 The rate and any promotion are not separate fields — Loomy writes them into the parenthesised suffix of `name` (`（x3.0）`, `（限时免费）`). `src/catalog.ts` parses both into structured `rate` / `promo` fields and leaves `name` untouched for the model selector, which wants the rate too.
 
+The settings card does the opposite: it strips the suffix from the displayed name (`modelName()`), right-aligns the rate in its own column and renders a promotion as a green pill, so the same figure never appears twice. `NAME_TAG` mirrors the two catalog regexes but anchors to the end, so parentheses inside a name survive.
+
 Models with `type: "image"` (or no text output modality) still appear in the card, marked as image, but are never registered with the provider: DSH is a chat surface. In practice 12 of the 14 models are servable.
 
 `reapply()` resolves the catalog as **API → generated config file → built-in snapshot**. The API failing (signed out, offline) falls back to the config file, and when that is missing too — the Windows build never writes one — the built-in snapshot keeps an offline start usable.
