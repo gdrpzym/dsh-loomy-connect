@@ -53,6 +53,7 @@ A dual-surface (host + browser) cordis plugin.
 | `src/adapter.ts` | Builds the pi-ai provider and registers it with DSH's `llm` seam |
 | `src/points.ts` | Reads Loomy's `localStorage` credits cache from LevelDB |
 | `src/web-status.ts` | Assembles and serves the browser card's status document |
+| `src/leveldb.ts` | LevelDB `localStorage` reader shared by both halves |
 
 The gateway listens on an ephemeral port on `127.0.0.1` with a per-process random secret. DSH holds only that secret; the Loomy session token is resolved from disk inside the gateway on each request and never leaves it.
 
@@ -63,6 +64,21 @@ The gateway listens on an ephemeral port on `127.0.0.1` with a per-process rando
 | `POST` | `/v1/chat/completions` | Streaming chat; proxies to Loomy upstream |
 
 Limits: 64 MiB request body, 20-minute request ceiling, upstream aborted when the client disconnects.
+
+### Sign-in source: macOS vs Windows
+
+The two platforms persist the session differently, so reads go **file first, then localStorage**:
+
+| Platform | Where |
+|---|---|
+| macOS | `~/Library/Application Support/loomy/auth-session.json` |
+| Windows | No sidecar file — the session lives in the renderer's `localStorage` under `loomy-auth-session` (LevelDB) |
+
+On Windows `auth-session.json` does not exist at all, so building a platform-specific file path alone yields ENOENT and a 502 on every request. `readLoomyCredential()` therefore reads `authFile` / `LOOMY_AUTH_FILE` / the detected default path first, and falls back to `readLoomySessionFromStorage()` when no usable session is there: it scans `*.log` / `*.ldb` under `Local Storage/leveldb`, collects every record under `loomy-auth-session`, and keeps the newest by `loggedInAt`.
+
+LevelDB is append-only, so one key can appear several times; the first hit is not necessarily the current one.
+
+The Windows record keeps the full phone number in `phone` (with a separate `maskedPhone` field), while macOS stores an already-masked value there. `parseLoomyAuth()` prefers `maskedPhone` and masks any 11-digit value without a `*`, so a full number never reaches the browser through the status route.
 
 ## Browser half
 
@@ -171,7 +187,7 @@ Re-exported from the package root for reuse and testing:
 | `createLoomyAdapter`, `LOOMY_PROVIDER`, `LoomyAdapter` | Provider adapter |
 | `createLoomyShim`, `resolveAuthFile`, `LoomyShim`, `LoomyShimOptions` | Gateway |
 | `LoomyCatalog`, `parseLoomyModels`, `LoomyModel` | Model discovery |
-| `defaultLoomyAuthPath`, `defaultLoomyConfigPath`, `parseLoomyAuth`, `readLoomyCredential`, `LoomyCredential` | Sign-in state |
+| `defaultLoomyAuthPath`, `defaultLoomyConfigPath`, `LOOMY_AUTH_SESSION_KEY`, `extractLoomyAuthSessions`, `parseLoomyAuth`, `readLoomyCredential`, `readLoomySessionFromStorage`, `LoomyCredential` | Sign-in state |
 | `LOOMY_API_BASE`, `LoomyUpstreamClient`, `prepareLoomyBody` | Upstream client |
 | `loopbackHost`, `loopbackOrigin` | Request guards |
 | `LOOMY_POINTS_KEY`, `defaultLoomyLocalStorageDir`, `extractLoomyPoints`, `newestLoomyPoints`, `parseLoomyPointsRecord`, `readLoomyPoints`, `resetLoomyPointsCache`, `LoomyPointsSummary` | Credits |
@@ -191,6 +207,7 @@ Re-exported from the package root for reuse and testing:
 | `src/adapter.ts` | pi-ai provider registered into DSH's `llm` seam |
 | `src/loopback.ts` | Shared loopback Host/Origin guards |
 | `src/points.ts` | Credits read from Loomy's LevelDB `localStorage` cache |
+| `src/leveldb.ts` | LevelDB `localStorage` reader shared by sign-in and credits |
 | `src/status-paths.ts` | Node-free constants and types shared by both halves |
 | `src/web-status.ts` | Status route and document assembly |
 | `src/client/index.tsx` | Browser entry: slot registration, locale namespaces |

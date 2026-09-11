@@ -53,6 +53,14 @@ interface LoomyAdapter {
 declare function createLoomyAdapter(catalog: LoomyCatalog, shim: LoomyShim): LoomyAdapter;
 //#endregion
 //#region src/auth.d.ts
+/**
+ * The `localStorage` key Loomy's renderer keeps the sign-in session under.
+ *
+ * Only the Windows build relies on it: there Loomy keeps the session in the
+ * renderer's own storage and never writes the `auth-session.json` sidecar the
+ * macOS build leaves in its Electron data dir.
+ */
+declare const LOOMY_AUTH_SESSION_KEY = "loomy-auth-session";
 interface LoomyCredential {
   session: string;
   userId: string;
@@ -64,6 +72,15 @@ declare function defaultLoomyAuthPath(): string;
 /** The first existing config file, or the primary platform default when none yet. */
 declare function defaultLoomyConfigPath(): string;
 declare function parseLoomyAuth(text: string): LoomyCredential | undefined;
+/**
+ * Every session cached in one LevelDB log, oldest first.
+ *
+ * The log is append-only, so several records can share the key; `loggedInAt`
+ * decides which is current rather than file order.
+ */
+declare function extractLoomyAuthSessions(text: string): LoomyCredential[];
+/** The newest session in Loomy's localStorage, or undefined when there is none. */
+declare function readLoomySessionFromStorage(dir?: string): Promise<LoomyCredential | undefined>;
 declare function readLoomyCredential(authFile?: string): Promise<LoomyCredential>;
 //#endregion
 //#region src/upstream.d.ts
@@ -227,4 +244,4 @@ interface ConfigShape {
 declare const LOOMY_SETTINGS_NS = "loomy";
 declare function apply(ctx: Context, config?: ConfigShape): void;
 //#endregion
-export { Config, ConfigShape, LOOMY_API_BASE, LOOMY_POINTS_KEY, LOOMY_PROVIDER, LOOMY_SETTINGS_NS, LOOMY_STATUS_PATH, type LoomyAdapter, type LoomyAuthFile, LoomyCatalog, type LoomyCredential, type LoomyModel, type LoomyPointsSummary, type LoomyShim, type LoomyShimOptions, type LoomyStatusRouteOptions, LoomyUpstreamClient, type LoomyWebPoints, type LoomyWebStatus, apply, createLoomyAdapter, createLoomyShim, defaultLoomyAuthPath, defaultLoomyConfigPath, defaultLoomyLocalStorageDir, extractLoomyPoints, inject, loomyStatusHandler, loomyWebStatus, loopbackHost, loopbackOrigin, name, newestLoomyPoints, parseLoomyAuth, parseLoomyModels, parseLoomyPointsRecord, prepareLoomyBody, readLoomyCredential, readLoomyPoints, registerLoomyStatusRoute, resetLoomyPointsCache, resolveAuthFile };
+export { Config, ConfigShape, LOOMY_API_BASE, LOOMY_AUTH_SESSION_KEY, LOOMY_POINTS_KEY, LOOMY_PROVIDER, LOOMY_SETTINGS_NS, LOOMY_STATUS_PATH, type LoomyAdapter, type LoomyAuthFile, LoomyCatalog, type LoomyCredential, type LoomyModel, type LoomyPointsSummary, type LoomyShim, type LoomyShimOptions, type LoomyStatusRouteOptions, LoomyUpstreamClient, type LoomyWebPoints, type LoomyWebStatus, apply, createLoomyAdapter, createLoomyShim, defaultLoomyAuthPath, defaultLoomyConfigPath, defaultLoomyLocalStorageDir, extractLoomyAuthSessions, extractLoomyPoints, inject, loomyStatusHandler, loomyWebStatus, loopbackHost, loopbackOrigin, name, newestLoomyPoints, parseLoomyAuth, parseLoomyModels, parseLoomyPointsRecord, prepareLoomyBody, readLoomyCredential, readLoomyPoints, readLoomySessionFromStorage, registerLoomyStatusRoute, resetLoomyPointsCache, resolveAuthFile };

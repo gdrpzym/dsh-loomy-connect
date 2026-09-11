@@ -53,6 +53,7 @@
 | `src/adapter.ts` | 构造 pi-ai provider 并注册进 DSH 的 `llm` seam |
 | `src/points.ts` | 从 LevelDB 读取 Loomy `localStorage` 中的积分缓存 |
 | `src/web-status.ts` | 组装并响应浏览器卡片的状态文档 |
+| `src/leveldb.ts` | 两端共用的 LevelDB `localStorage` 读取器 |
 
 网关监听 `127.0.0.1` 的随机空闲端口，使用进程内随机密钥。DSH 只持有该密钥；Loomy session token 在每次请求时于网关内部从磁盘解析，不外泄。
 
@@ -63,6 +64,21 @@
 | `POST` | `/v1/chat/completions` | 流式对话，代理至 Loomy 上游 |
 
 限制：请求体上限 64 MiB，单次请求上限 20 分钟，客户端断开时中断上游。
+
+### 登录态来源：macOS 与 Windows 不同
+
+两个平台的落盘方式不一致，读取顺序为**先文件、后 localStorage**：
+
+| 平台 | 位置 |
+|---|---|
+| macOS | `~/Library/Application Support/loomy/auth-session.json` |
+| Windows | 无 sidecar 文件，session 存在渲染进程 localStorage 的 `loomy-auth-session` 键下（LevelDB） |
+
+Windows 上 `auth-session.json` 根本不存在，因此仅按平台拼文件路径必然 ENOENT、所有请求 502。`readLoomyCredential()` 的做法是：先按 `authFile` / `LOOMY_AUTH_FILE` / 探测到的默认路径读文件；读不到或解析不出有效 session 时，回落到 `readLoomySessionFromStorage()`，扫描 `Local Storage/leveldb` 的 `*.log` / `*.ldb`，按键 `loomy-auth-session` 取出全部记录，以 `loggedInAt` 取最新一条。
+
+LevelDB 追加写会产生同一键的多条记录，故不能取首个命中。
+
+Windows 的记录里 `phone` 是完整手机号（另有 `maskedPhone` 字段），而 macOS 的 `phone` 本身就是脱敏值。`parseLoomyAuth()` 优先取 `maskedPhone`，并对不含 `*` 的 11 位号码自行脱敏，避免完整号码经状态端点进入浏览器。
 
 ## 浏览器端
 
@@ -158,7 +174,7 @@ LevelDB 为追加写日志，同一键的旧值残留于文件中。`src/points.
 | 随机密钥 + `timingSafeEqual` | `src/shim.ts`，进程启动时 `randomBytes(32)` |
 | loopback `Host` 校验 | `src/loopback.ts` → `loopbackHost()` |
 | loopback `Origin` + `application/json` | `src/loopback.ts` → `loopbackOrigin()` |
-| session token 不出网关 | `src/shim.ts` 每请求从磁盘解析 |
+| session token 不出网关 | `src/auth.ts` 每请求从磁盘/localStorage 解析，仅网关持有 |
 | 状态路由脱敏 | `src/web-status.ts` 过滤 token 形字符串 |
 
 ## 对外 API
@@ -171,7 +187,7 @@ LevelDB 为追加写日志，同一键的旧值残留于文件中。`src/points.
 | `createLoomyAdapter`, `LOOMY_PROVIDER`, `LoomyAdapter` | Provider 适配层 |
 | `createLoomyShim`, `resolveAuthFile`, `LoomyShim`, `LoomyShimOptions` | 网关 |
 | `LoomyCatalog`, `parseLoomyModels`, `LoomyModel` | 模型发现 |
-| `defaultLoomyAuthPath`, `defaultLoomyConfigPath`, `parseLoomyAuth`, `readLoomyCredential`, `LoomyCredential` | 登录态 |
+| `defaultLoomyAuthPath`, `defaultLoomyConfigPath`, `LOOMY_AUTH_SESSION_KEY`, `extractLoomyAuthSessions`, `parseLoomyAuth`, `readLoomyCredential`, `readLoomySessionFromStorage`, `LoomyCredential` | 登录态 |
 | `LOOMY_API_BASE`, `LoomyUpstreamClient`, `prepareLoomyBody` | 上游客户端 |
 | `loopbackHost`, `loopbackOrigin` | 请求校验 |
 | `LOOMY_POINTS_KEY`, `defaultLoomyLocalStorageDir`, `extractLoomyPoints`, `newestLoomyPoints`, `parseLoomyPointsRecord`, `readLoomyPoints`, `resetLoomyPointsCache`, `LoomyPointsSummary` | 积分 |
@@ -191,6 +207,7 @@ LevelDB 为追加写日志，同一键的旧值残留于文件中。`src/points.
 | `src/adapter.ts` | 注册进 DSH `llm` seam 的 pi-ai provider |
 | `src/loopback.ts` | 共用的 loopback Host/Origin 校验 |
 | `src/points.ts` | 从 Loomy LevelDB `localStorage` 读积分 |
+| `src/leveldb.ts` | LevelDB `localStorage` 读取器（登录态与积分共用） |
 | `src/status-paths.ts` | 两端共用、不依赖 Node 的常量与类型 |
 | `src/web-status.ts` | 状态路由与文档组装 |
 | `src/client/index.tsx` | 浏览器入口：slot 注册、locale 命名空间 |

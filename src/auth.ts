@@ -3,9 +3,20 @@ import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { extractLevelDbRecords, readLevelDbTexts } from './leveldb.ts'
+import { defaultLoomyLocalStorageDir } from './points.ts'
 
 export const LOOMY_AUTH_FILE_ENV = 'LOOMY_AUTH_FILE'
 export const LOOMY_CONFIG_FILE_ENV = 'LOOMY_CONFIG_FILE'
+
+/**
+ * The `localStorage` key Loomy's renderer keeps the sign-in session under.
+ *
+ * Only the Windows build relies on it: there Loomy keeps the session in the
+ * renderer's own storage and never writes the `auth-session.json` sidecar the
+ * macOS build leaves in its Electron data dir.
+ */
+export const LOOMY_AUTH_SESSION_KEY = 'loomy-auth-session'
 
 export interface LoomyCredential {
   session: string
@@ -70,6 +81,20 @@ export function defaultLoomyConfigPath(): string {
   return defaultLoomyConfigCandidates()[0]
 }
 
+/**
+ * Mask an 11-digit mainland-China phone for display: `132****2249`.
+ *
+ * The macOS build stores `phone` already masked; the Windows build keeps the
+ * raw number there and the masked form in a separate field. Masking here —
+ * rather than trusting either field — keeps one full number off the card.
+ */
+function maskPhone(value: string): string {
+  if (value.includes('*')) return value
+  if (/^\d{11}$/.test(value)) return `${value.slice(0, 3)}****${value.slice(7)}`
+  if (value.length <= 4) return value
+  return `${value.slice(0, Math.ceil(value.length / 3))}****${value.slice(-Math.ceil(value.length / 4))}`
+}
+
 export function parseLoomyAuth(text: string): LoomyCredential | undefined {
   try {
     const value: unknown = JSON.parse(text)
@@ -78,19 +103,67 @@ export function parseLoomyAuth(text: string): LoomyCredential | undefined {
     const session = typeof record.session === 'string' ? record.session.trim() : ''
     const userId = typeof record.userid === 'string' ? record.userid.trim() : ''
     if (session === '' || userId === '') return undefined
-    const phone = typeof record.phone === 'string' ? record.phone.trim() : ''
+    const string = (field: unknown): string => typeof field === 'string' ? field.trim() : ''
+    // Prefer an explicitly masked field; fall back to whatever `phone` holds.
+    const phone = string(record.maskedPhone) || string(record.phone)
     return {
       session,
       userId,
-      // Loomy already stores this masked (e.g. `136****1234`); keep it that way.
-      ...phone === '' ? {} : { maskedPhone: phone },
+      ...phone === '' ? {} : { maskedPhone: maskPhone(phone) },
     }
   } catch { return undefined }
 }
 
+/** When Loomy last signed the session in, or -Infinity when it does not say. */
+function loggedInAtOf(raw: string): number {
+  try {
+    const value: unknown = JSON.parse(raw)
+    if (typeof value !== 'object' || value === null) return -Infinity
+    const at = (value as Record<string, unknown>).loggedInAt
+    if (typeof at !== 'string') return -Infinity
+    const parsed = Date.parse(at)
+    return Number.isNaN(parsed) ? -Infinity : parsed
+  } catch { return -Infinity }
+}
+
+/**
+ * Every session cached in one LevelDB log, oldest first.
+ *
+ * The log is append-only, so several records can share the key; `loggedInAt`
+ * decides which is current rather than file order.
+ */
+export function extractLoomyAuthSessions(text: string): LoomyCredential[] {
+  const found: { credential: LoomyCredential; time: number }[] = []
+  for (const raw of extractLevelDbRecords(text, LOOMY_AUTH_SESSION_KEY)) {
+    const credential = parseLoomyAuth(raw)
+    if (credential !== undefined) found.push({ credential, time: loggedInAtOf(raw) })
+  }
+  found.sort((a, b) => a.time - b.time)
+  return found.map(entry => entry.credential)
+}
+
+/** The newest session in Loomy's localStorage, or undefined when there is none. */
+export async function readLoomySessionFromStorage(dir?: string): Promise<LoomyCredential | undefined> {
+  const path = dir ?? process.env.LOOMY_LOCAL_STORAGE_DIR ?? defaultLoomyLocalStorageDir()
+  try {
+    const sessions: LoomyCredential[] = []
+    for (const text of await readLevelDbTexts(path)) sessions.push(...extractLoomyAuthSessions(text))
+    return sessions.at(-1)
+  } catch { return undefined }
+}
+
 export async function readLoomyCredential(authFile?: string): Promise<LoomyCredential> {
-  const path = authFile ?? process.env[LOOMY_AUTH_FILE_ENV] ?? defaultLoomyAuthPath()
-  const credential = parseLoomyAuth(await readFile(path, 'utf8'))
-  if (credential === undefined) throw new Error('Loomy is not signed in. Sign in through the Loomy desktop app first.')
-  return credential
+  const override = authFile ?? process.env[LOOMY_AUTH_FILE_ENV]
+  const path = override ?? defaultLoomyAuthPath()
+  const text = await readFile(path, 'utf8').catch(() => undefined)
+  if (text !== undefined) {
+    const credential = parseLoomyAuth(text)
+    if (credential !== undefined) return credential
+    // A present-but-unusable file is a misconfiguration worth reporting as such.
+    if (override !== undefined) throw new Error(`Loomy sign-in file is not usable: ${path}`)
+  }
+  // Windows never writes the sidecar file; fall back to the renderer's own copy.
+  const stored = await readLoomySessionFromStorage()
+  if (stored !== undefined) return stored
+  throw new Error('Loomy is not signed in. Sign in through the Loomy desktop app first.')
 }

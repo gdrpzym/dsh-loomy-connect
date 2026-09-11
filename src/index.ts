@@ -97,7 +97,16 @@ export function apply(ctx: Context, config: ConfigShape = {}): void {
 export { createLoomyAdapter, LOOMY_PROVIDER, type LoomyAdapter } from './adapter.ts'
 export { createLoomyShim, resolveAuthFile, type LoomyAuthFile, type LoomyShim, type LoomyShimOptions } from './shim.ts'
 export { LoomyCatalog, parseLoomyModels, type LoomyModel } from './catalog.ts'
-export { defaultLoomyAuthPath, defaultLoomyConfigPath, parseLoomyAuth, readLoomyCredential, type LoomyCredential } from './auth.ts'
+export {
+  defaultLoomyAuthPath,
+  defaultLoomyConfigPath,
+  extractLoomyAuthSessions,
+  LOOMY_AUTH_SESSION_KEY,
+  parseLoomyAuth,
+  readLoomyCredential,
+  readLoomySessionFromStorage,
+  type LoomyCredential,
+} from './auth.ts'
 export { LOOMY_API_BASE, LoomyUpstreamClient, prepareLoomyBody } from './upstream.ts'
 export { loopbackHost, loopbackOrigin } from './loopback.ts'
 export {

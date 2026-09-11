@@ -98,6 +98,7 @@ dsh --profile web --dump-config     # 应出现 llm-loomy 条目
 ## 已知限制
 
 - 依赖 Loomy 的客户端接口（非官方开放 API），Loomy 更新后插件可能需要随之调整。
+- Windows 版 Loomy 不生成模型清单文件，此时使用内置的兜底模型列表；Loomy 侧新增模型需等待插件更新。
 - 积分读自 Loomy 的本地缓存，Loomy 未公开积分接口；缓存不存在时卡片不显示积分，而非显示 0。
 - 模型清单在启动时读取，Loomy 侧增删模型后需重启 DSH 才会同步。
 - Windows / Linux 下若登录态路径未被探测到，需通过 `LOOMY_AUTH_FILE` 手动指定。

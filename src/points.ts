@@ -20,10 +20,10 @@
  * @module dsh-loomy-connect/points
  */
 
-import { readdir, readFile, stat } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
+import { extractLevelDbRecords, fingerprintLevelDbDir, readLevelDbTexts } from './leveldb.ts'
 
 /** The localStorage key Loomy's renderer writes the points summary to. */
 export const LOOMY_POINTS_KEY = 'loomy-points-summary'
@@ -63,37 +63,6 @@ export interface LoomyPointsSummary {
   updatedAt?: string
 }
 
-/**
- * Slice one balanced JSON object starting at `start`.
- *
- * Braces inside strings are skipped, and the scan stops at an unbalanced
- * closing brace so a truncated tail never swallows the record after it.
- */
-function readJsonObject(text: string, start: number): string | undefined {
-  if (text[start] !== '{') return undefined
-  let depth = 0
-  let inString = false
-  let escaped = false
-  for (let i = start; i < text.length; i += 1) {
-    const char = text[i]
-    if (char === undefined) break
-    if (inString) {
-      if (escaped) escaped = false
-      else if (char === '\\') escaped = true
-      else if (char === '"') inString = false
-      continue
-    }
-    if (char === '"') inString = true
-    else if (char === '{') depth += 1
-    else if (char === '}') {
-      depth -= 1
-      if (depth === 0) return text.slice(start, i + 1)
-      if (depth < 0) return undefined
-    }
-  }
-  return undefined
-}
-
 /** Parse one cached record, keeping only the fields the card renders. */
 export function parseLoomyPointsRecord(raw: string): LoomyPointsSummary | undefined {
   try {
@@ -115,17 +84,9 @@ export function parseLoomyPointsRecord(raw: string): LoomyPointsSummary | undefi
 /** Every cached summary in one LevelDB log, oldest first. */
 export function extractLoomyPoints(text: string): LoomyPointsSummary[] {
   const found: LoomyPointsSummary[] = []
-  let index = text.indexOf(LOOMY_POINTS_KEY)
-  while (index !== -1) {
-    const brace = text.indexOf('{', index + LOOMY_POINTS_KEY.length)
-    if (brace !== -1) {
-      const raw = readJsonObject(text, brace)
-      if (raw !== undefined) {
-        const parsed = parseLoomyPointsRecord(raw)
-        if (parsed !== undefined) found.push(parsed)
-      }
-    }
-    index = text.indexOf(LOOMY_POINTS_KEY, index + LOOMY_POINTS_KEY.length)
+  for (const raw of extractLevelDbRecords(text, LOOMY_POINTS_KEY)) {
+    const parsed = parseLoomyPointsRecord(raw)
+    if (parsed !== undefined) found.push(parsed)
   }
   return found
 }
@@ -158,30 +119,11 @@ let cache: CacheEntry | undefined
  */
 export async function readLoomyPoints(dir?: string): Promise<LoomyPointsSummary | undefined> {
   const path = dir ?? process.env.LOOMY_LOCAL_STORAGE_DIR ?? defaultLoomyLocalStorageDir()
-  let fingerprint = path
-  try {
-    const info = await stat(path)
-    fingerprint = `${path}:${info.mtimeMs}:${info.size}`
-    // LevelDB keeps the live records in `*.log`; a missing dir means no cache.
-    const files = (await readdir(path)).filter(name => name.endsWith('.log') || name.endsWith('.ldb'))
-    for (const name of files) {
-      const file = await stat(join(path, name))
-      fingerprint += `|${name}:${file.mtimeMs}:${file.size}`
-    }
-  } catch {
-    cache = { key: fingerprint, value: undefined }
-    return undefined
-  }
+  const fingerprint = await fingerprintLevelDbDir(path)
   if (cache !== undefined && cache.key === fingerprint) return cache.value
   const records: LoomyPointsSummary[] = []
   try {
-    const files = (await readdir(path)).filter(name => name.endsWith('.log') || name.endsWith('.ldb'))
-    for (const name of files) {
-      // The log is binary; `latin1` keeps every byte so offsets stay honest,
-      // and the JSON we want is pure ASCII either way.
-      const text = await readFile(join(path, name), 'latin1')
-      records.push(...extractLoomyPoints(text))
-    }
+    for (const text of await readLevelDbTexts(path)) records.push(...extractLoomyPoints(text))
   } catch {
     cache = { key: fingerprint, value: undefined }
     return undefined

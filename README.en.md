@@ -98,6 +98,7 @@ Threat model: protects against other local processes and against web pages runni
 ## Known limitations
 
 - Depends on Loomy's client interface (not an official public API); Loomy updates may require plugin changes.
+- The Windows build of Loomy writes no model manifest, so the plugin falls back to its built-in model list; new Loomy models need a plugin update.
 - Credits are read from Loomy's local cache — Loomy exposes no credits endpoint. When no cache exists the card omits credits rather than showing 0.
 - The model manifest is read at startup; restart DSH after Loomy adds or removes models.
 - If the sign-in path is not detected on Windows / Linux, set `LOOMY_AUTH_FILE` explicitly.
