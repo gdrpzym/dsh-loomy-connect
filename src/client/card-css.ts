@@ -40,6 +40,10 @@ export const CSS = {
   text: 'dlc_text',
   hint: 'dlc_hint',
   error: 'dlc_error',
+  list: 'dlc_list',
+  listItem: 'dlc_listItem',
+  listName: 'dlc_listName',
+  listNote: 'dlc_listNote',
 } as const
 
 const STYLESHEET = `
@@ -69,6 +73,10 @@ const STYLESHEET = `
 /* The official shell's equivalent rule names --dsw-alias-label-error, which no
    shipped theme defines (the text silently inherits). Use a token that exists. */
 .dlc_error{color:var(--dsw-alias-state-error-primary);margin:0;font-size:12px;line-height:1.5}
+.dlc_list{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+.dlc_listItem{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.dlc_listName{color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlc_listNote{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5;flex:none}
 `
 
 /**

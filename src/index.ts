@@ -60,6 +60,13 @@ export function apply(ctx: Context, config: ConfigShape = {}): void {
     },
     points: () => readLoomyPoints(),
     modelCount: () => catalog.current().length,
+    models: () => catalog.all().map(model => ({
+      id: model.id,
+      name: model.name,
+      ...model.rate === undefined ? {} : { rate: model.rate },
+      ...model.promo === undefined ? {} : { promo: model.promo },
+      ...model.image === true ? { image: true } : {},
+    })),
   }))
 
   // Set once the provider is live, so an early `onChange` (installSection calls
@@ -87,8 +94,15 @@ export function apply(ctx: Context, config: ConfigShape = {}): void {
     ctx.effect(() => () => { releaseAdapter(); releaseDirectory() })
     reapply = async () => {
       if (closed) return
-      try { await catalog.refresh(configFile()); loomy.invalidate() }
-      catch (error) { ctx.logger.warn('dsh-loomy-connect: using fallback catalog; unable to read Loomy model configuration', error) }
+      // Loomy's own list is authoritative and carries the rates; the generated
+      // OpenCode config is the fallback when the API cannot be reached.
+      try {
+        try { await catalog.refreshFromApi(await readLoomyCredential(authFile())) }
+        catch { await catalog.refreshFromFile(configFile()) }
+        loomy.invalidate()
+      } catch (error) {
+        ctx.logger.warn('dsh-loomy-connect: using fallback catalog; unable to read Loomy model configuration', error)
+      }
     }
     await reapply()
   }).catch(error => ctx.logger.error('dsh-loomy-connect: failed to start loopback gateway', error))
@@ -96,7 +110,7 @@ export function apply(ctx: Context, config: ConfigShape = {}): void {
 
 export { createLoomyAdapter, LOOMY_PROVIDER, type LoomyAdapter } from './adapter.ts'
 export { createLoomyShim, resolveAuthFile, type LoomyAuthFile, type LoomyShim, type LoomyShimOptions } from './shim.ts'
-export { LoomyCatalog, parseLoomyModels, type LoomyModel } from './catalog.ts'
+export { LoomyCatalog, parseLoomyApiModels, parseLoomyModels, type LoomyModel } from './catalog.ts'
 export {
   defaultLoomyAuthPath,
   defaultLoomyConfigPath,

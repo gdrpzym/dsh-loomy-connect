@@ -4,6 +4,27 @@ import type { LoomyCredential } from './auth.ts'
 export const LOOMY_API_BASE = 'https://loomyad.xunfei.cn/api/v1'
 
 export class LoomyUpstreamClient {
+  /**
+   * The account's model list, carrying Loomy's own rate labels.
+   *
+   * Preferred over Loomy's generated OpenCode config: it is the same list the
+   * app renders, it exists on every platform, and it is the only source that
+   * says what each model costs.
+   */
+  async models(credential: LoomyCredential, signal?: AbortSignal): Promise<string> {
+    const response = await fetch(`${LOOMY_API_BASE}/models`, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${credential.session}`,
+        token: credential.session,
+        'X-User-Id': credential.userId,
+      },
+      ...(signal === undefined ? {} : { signal }),
+    })
+    if (!response.ok) throw new Error(`Loomy model list failed (HTTP ${response.status})`)
+    return response.text()
+  }
+
   async chatStream(credential: LoomyCredential, body: string, signal?: AbortSignal): Promise<Response> {
     const response = await fetch(`${LOOMY_API_BASE}/chat/completions`, {
       method: 'POST',

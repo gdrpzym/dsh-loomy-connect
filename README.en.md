@@ -29,7 +29,8 @@ The plugin reads Loomy's on-disk sign-in session and model manifest read-only. N
 ## Features
 
 - **Zero configuration**: once installed and enabled, Loomy's models appear directly in DSH's model selector.
-- **Model auto-discovery**: Loomy's manifest is read at startup; only models with text output are included.
+- **Model auto-discovery**: the account's model list is fetched at startup; only models with text output are served.
+- **Rates and promos**: the settings card lists every model with its points multiplier (`x3.0`) and flags limited-time free ones, following Loomy's own numbers.
 - **Account and credits**: the settings card shows the signed-in account, long-lived credits, and daily credits — read from the same data Loomy's own UI renders from.
 - **Bilingual**: card copy follows the DSH interface language.
 
@@ -75,13 +76,11 @@ Paths are auto-detected per platform, so configuration is normally unnecessary. 
 
 Resolution order per lookup: **plugin config (`authFile` / `configFile`) → environment variable → detected default**.
 
-Default paths are probed across macOS / Windows / Linux; the first existing path wins:
+Default paths are probed across macOS and Windows; the first existing path wins:
 
 | Platform | Sign-in session | Model manifest | Credits cache |
 |---|---|---|---|
-| macOS | `~/Library/Application Support/loomy/auth-session.json` | `~/.config/loomy-opencode/opencode.json` | `~/Library/Application Support/loomy/Local Storage/leveldb` |
 | Windows | `%APPDATA%/loomy/auth-session.json` | `%APPDATA%/loomy-opencode/opencode.json` | `%APPDATA%/loomy/Local Storage/leveldb` |
-| Linux | `~/.config/loomy/auth-session.json` | `~/.config/loomy-opencode/opencode.json` | `~/.config/loomy/Local Storage/leveldb` |
 
 ## Security model
 
@@ -98,10 +97,10 @@ Threat model: protects against other local processes and against web pages runni
 ## Known limitations
 
 - Depends on Loomy's client interface (not an official public API); Loomy updates may require plugin changes.
-- The Windows build of Loomy writes no model manifest, so the plugin falls back to its built-in model list; new Loomy models need a plugin update.
+- The model list and its rates come from Loomy's API; when it is unreachable the plugin falls back to Loomy's generated config, and only then to a built-in snapshot.
 - Credits are read from Loomy's local cache — Loomy exposes no credits endpoint. When no cache exists the card omits credits rather than showing 0.
 - The model manifest is read at startup; restart DSH after Loomy adds or removes models.
-- If the sign-in path is not detected on Windows / Linux, set `LOOMY_AUTH_FILE` explicitly.
+- If the sign-in path is not detected on Windows, set `LOOMY_AUTH_FILE` explicitly.
 
 ## Troubleshooting
 

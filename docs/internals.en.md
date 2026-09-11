@@ -65,6 +65,22 @@ The gateway listens on an ephemeral port on `127.0.0.1` with a per-process rando
 
 Limits: 64 MiB request body, 20-minute request ceiling, upstream aborted when the client disconnects.
 
+### Where the model list and rates come from
+
+`GET {LOOMY_API_BASE}/models` (`https://loomyad.xunfei.cn/api/v1/models`, session required) returns every model the account can reach and is the only source that also carries the **rate**:
+
+```jsonc
+{ "id": "deepseek-v4-flash-0731", "name": "DeepSeek V4 Flash 0731（x3.0）",
+  "type": "chat", "context_length": 1048576, "max_output_tokens": 384000,
+  "capabilities": { "reasoning": true, "input_modalities": ["text"], "output_modalities": ["text"] } }
+```
+
+The rate and any promotion are not separate fields — Loomy writes them into the parenthesised suffix of `name` (`（x3.0）`, `（限时免费）`). `src/catalog.ts` parses both into structured `rate` / `promo` fields and leaves `name` untouched for the model selector, which wants the rate too.
+
+Models with `type: "image"` (or no text output modality) still appear in the card, marked as image, but are never registered with the provider: DSH is a chat surface. In practice 12 of the 14 models are servable.
+
+`reapply()` resolves the catalog as **API → generated config file → built-in snapshot**. The API failing (signed out, offline) falls back to the config file, and when that is missing too — the Windows build never writes one — the built-in snapshot keeps an offline start usable.
+
 ### Sign-in source: macOS vs Windows
 
 The two platforms persist the session differently, so reads go **file first, then localStorage**:
@@ -186,7 +202,7 @@ Re-exported from the package root for reuse and testing:
 | `name`, `inject`, `Config`, `apply` | Plugin entry points |
 | `createLoomyAdapter`, `LOOMY_PROVIDER`, `LoomyAdapter` | Provider adapter |
 | `createLoomyShim`, `resolveAuthFile`, `LoomyShim`, `LoomyShimOptions` | Gateway |
-| `LoomyCatalog`, `parseLoomyModels`, `LoomyModel` | Model discovery |
+| `LoomyCatalog`, `parseLoomyApiModels`, `parseLoomyModels`, `LoomyModel` | Model discovery |
 | `defaultLoomyAuthPath`, `defaultLoomyConfigPath`, `LOOMY_AUTH_SESSION_KEY`, `extractLoomyAuthSessions`, `parseLoomyAuth`, `readLoomyCredential`, `readLoomySessionFromStorage`, `LoomyCredential` | Sign-in state |
 | `LOOMY_API_BASE`, `LoomyUpstreamClient`, `prepareLoomyBody` | Upstream client |
 | `loopbackHost`, `loopbackOrigin` | Request guards |
@@ -201,7 +217,7 @@ Re-exported from the package root for reuse and testing:
 | `cordis.patch.yml` | DSH profile patch inserting the `llm-loomy` entry |
 | `src/index.ts` | Plugin entry: `name` / `inject` / `Config` / `apply` |
 | `src/auth.ts` | Read-only Loomy sign-in state, platform path detection |
-| `src/catalog.ts` | Text-model discovery from Loomy's manifest |
+| `src/catalog.ts` | Model discovery: API first, config file and snapshot as fallbacks |
 | `src/upstream.ts` | Loomy upstream call and request-body normalisation |
 | `src/shim.ts` | Credential-protected loopback gateway |
 | `src/adapter.ts` | pi-ai provider registered into DSH's `llm` seam |

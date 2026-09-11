@@ -25,29 +25,19 @@ export interface LoomyCredential {
   maskedPhone?: string
 }
 
-/**
- * The XDG config home, falling back to `~/.config` when `XDG_CONFIG_HOME` is
- * unset (the convention every platform — including Windows — inherits from
- * OpenCode's XDG-style config layout).
- */
-function xdgConfigHome(): string {
-  const raw = process.env.XDG_CONFIG_HOME
-  return raw !== undefined && raw.trim() !== '' ? raw : join(homedir(), '.config')
-}
+/** Loomy's OpenCode-style config home: `~/.config` on macOS. */
+function configHome(): string { return join(homedir(), '.config') }
 
 /**
  * Candidate locations of Loomy's desktop sign-in session, most-likely platform
  * first. Loomy is an Electron app, so its data dir follows the platform
  * convention: macOS `~/Library/Application Support/loomy`, Windows
- * `%APPDATA%/loomy`, Linux `~/.config/loomy`. Searching every candidate keeps
- * the plugin working whether it was installed on macOS, Windows, or Linux.
+ * `%APPDATA%/loomy`. Searching every candidate keeps the plugin working
+ * whichever of the two it was installed on.
  */
 export function defaultLoomyAuthCandidates(): string[] {
   const appData = process.env.APPDATA
-  const candidates = [
-    join(homedir(), 'Library', 'Application Support', 'loomy', 'auth-session.json'),
-    join(xdgConfigHome(), 'loomy', 'auth-session.json'),
-  ]
+  const candidates = [join(homedir(), 'Library', 'Application Support', 'loomy', 'auth-session.json')]
   if (appData !== undefined) candidates.push(join(appData, 'loomy', 'auth-session.json'))
   return candidates
 }
@@ -62,13 +52,12 @@ export function defaultLoomyAuthPath(): string {
 
 /**
  * Candidate locations of Loomy's generated OpenCode model config, most-likely
- * platform first. macOS uses `~/.config/loomy-opencode` (XDG); on Windows the
- * same layout lands under `%APPDATA%/loomy-opencode` or
- * `%USERPROFILE%/.config/loomy-opencode`.
+ * platform first. macOS uses `~/.config/loomy-opencode`; on Windows the same
+ * layout lands under `%APPDATA%/loomy-opencode`.
  */
 export function defaultLoomyConfigCandidates(): string[] {
   const appData = process.env.APPDATA
-  const candidates = [join(xdgConfigHome(), 'loomy-opencode', 'opencode.json')]
+  const candidates = [join(configHome(), 'loomy-opencode', 'opencode.json')]
   if (appData !== undefined) candidates.push(join(appData, 'loomy-opencode', 'opencode.json'))
   return candidates
 }

@@ -2,6 +2,37 @@ import Schema from "@deepseek-ai/schemastery";
 import { PiAiAdapter } from "@deepseek-ai/dsh-llm-pi-ai";
 import { IncomingMessage, ServerResponse } from "node:http";
 import { Context } from "@deepseek-ai/cordis";
+//#region src/auth.d.ts
+/**
+ * The `localStorage` key Loomy's renderer keeps the sign-in session under.
+ *
+ * Only the Windows build relies on it: there Loomy keeps the session in the
+ * renderer's own storage and never writes the `auth-session.json` sidecar the
+ * macOS build leaves in its Electron data dir.
+ */
+declare const LOOMY_AUTH_SESSION_KEY = "loomy-auth-session";
+interface LoomyCredential {
+  session: string;
+  userId: string;
+  /** Already-masked phone number Loomy stores alongside the session, for display only. */
+  maskedPhone?: string;
+}
+/** The first existing auth file, or the primary platform default when none yet. */
+declare function defaultLoomyAuthPath(): string;
+/** The first existing config file, or the primary platform default when none yet. */
+declare function defaultLoomyConfigPath(): string;
+declare function parseLoomyAuth(text: string): LoomyCredential | undefined;
+/**
+ * Every session cached in one LevelDB log, oldest first.
+ *
+ * The log is append-only, so several records can share the key; `loggedInAt`
+ * decides which is current rather than file order.
+ */
+declare function extractLoomyAuthSessions(text: string): LoomyCredential[];
+/** The newest session in Loomy's localStorage, or undefined when there is none. */
+declare function readLoomySessionFromStorage(dir?: string): Promise<LoomyCredential | undefined>;
+declare function readLoomyCredential(authFile?: string): Promise<LoomyCredential>;
+//#endregion
 //#region src/catalog.d.ts
 interface LoomyModel {
   id: string;
@@ -10,12 +41,34 @@ interface LoomyModel {
   maxTokens: number;
   supportsImages: boolean;
   reasoning: boolean;
+  /** Points multiplier Loomy prints in the model name — 3 for `x3.0`. */
+  rate?: number;
+  /** Promotional label Loomy prints in the model name, e.g. 限时免费. */
+  promo?: string;
+  /** True for image generators: listed for reference, never served to DSH. */
+  image?: boolean;
 }
+/** Parse Loomy's `/v1/models` response; every entry that has an id survives. */
+declare function parseLoomyApiModels(text: string): readonly LoomyModel[];
+/** Parse Loomy's generated OpenCode config, the source the macOS build writes. */
 declare function parseLoomyModels(text: string): readonly LoomyModel[];
+/**
+ * The account's model list.
+ *
+ * Loomy's `/v1/models` is authoritative and carries the rates, so it is the
+ * preferred source; the generated OpenCode config is the fallback for builds
+ * or sessions where the API cannot be reached.
+ */
 declare class LoomyCatalog {
-  private models;
+  private served;
+  private discovered;
+  /** Models DSH can actually call. */
   current(): readonly LoomyModel[];
-  refresh(configFile?: string): Promise<void>;
+  /** Everything Loomy lists, image generators included, for the card to show. */
+  all(): readonly LoomyModel[];
+  private accept;
+  refreshFromApi(credential: LoomyCredential, signal?: AbortSignal): Promise<void>;
+  refreshFromFile(configFile?: string): Promise<void>;
 }
 //#endregion
 //#region src/shim.d.ts
@@ -52,40 +105,17 @@ interface LoomyAdapter {
 }
 declare function createLoomyAdapter(catalog: LoomyCatalog, shim: LoomyShim): LoomyAdapter;
 //#endregion
-//#region src/auth.d.ts
-/**
- * The `localStorage` key Loomy's renderer keeps the sign-in session under.
- *
- * Only the Windows build relies on it: there Loomy keeps the session in the
- * renderer's own storage and never writes the `auth-session.json` sidecar the
- * macOS build leaves in its Electron data dir.
- */
-declare const LOOMY_AUTH_SESSION_KEY = "loomy-auth-session";
-interface LoomyCredential {
-  session: string;
-  userId: string;
-  /** Already-masked phone number Loomy stores alongside the session, for display only. */
-  maskedPhone?: string;
-}
-/** The first existing auth file, or the primary platform default when none yet. */
-declare function defaultLoomyAuthPath(): string;
-/** The first existing config file, or the primary platform default when none yet. */
-declare function defaultLoomyConfigPath(): string;
-declare function parseLoomyAuth(text: string): LoomyCredential | undefined;
-/**
- * Every session cached in one LevelDB log, oldest first.
- *
- * The log is append-only, so several records can share the key; `loggedInAt`
- * decides which is current rather than file order.
- */
-declare function extractLoomyAuthSessions(text: string): LoomyCredential[];
-/** The newest session in Loomy's localStorage, or undefined when there is none. */
-declare function readLoomySessionFromStorage(dir?: string): Promise<LoomyCredential | undefined>;
-declare function readLoomyCredential(authFile?: string): Promise<LoomyCredential>;
-//#endregion
 //#region src/upstream.d.ts
 declare const LOOMY_API_BASE = "https://loomyad.xunfei.cn/api/v1";
 declare class LoomyUpstreamClient {
+  /**
+   * The account's model list, carrying Loomy's own rate labels.
+   *
+   * Preferred over Loomy's generated OpenCode config: it is the same list the
+   * app renders, it exists on every platform, and it is the only source that
+   * says what each model costs.
+   */
+  models(credential: LoomyCredential, signal?: AbortSignal): Promise<string>;
   chatStream(credential: LoomyCredential, body: string, signal?: AbortSignal): Promise<Response>;
 }
 /** Preserve tool calls; add the options Loomy sends for agent conversations. */
@@ -175,6 +205,18 @@ interface LoomyWebPoints {
   /** ISO timestamp of Loomy's last refresh, so the card can show staleness. */
   updatedAt?: string;
 }
+/** One model as Loomy lists it, including the rate it bills at. */
+interface LoomyWebModel {
+  id: string;
+  /** Loomy's own display name, which carries the rate (e.g. `…（x3.0）`). */
+  name: string;
+  /** Points multiplier Loomy prints in the name — 3 for `x3.0`. */
+  rate?: number;
+  /** Promotional label Loomy prints in the name, e.g. 限时免费. */
+  promo?: string;
+  /** True for image generators: listed for reference, never served to DSH. */
+  image?: boolean;
+}
 /** The JSON document the plugin card renders. */
 type LoomyWebStatus = {
   status: 'signed-out';
@@ -184,6 +226,8 @@ type LoomyWebStatus = {
   account?: string;
   /** How many models the plugin is currently serving. */
   modelCount: number;
+  /** Every model the account can reach, including image generators. */
+  models?: LoomyWebModel[];
   points?: LoomyWebPoints;
   pointsError?: string;
 } | {
@@ -200,6 +244,8 @@ interface LoomyStatusRouteOptions {
   points: () => Promise<LoomyPointsSummary | undefined>;
   /** How many models the plugin currently serves. */
   modelCount: () => number;
+  /** Every model the account can reach, for the card to list with its rate. */
+  models?: () => LoomyWebModel[];
 }
 /**
  * Assemble the card's status document. Points come from Loomy's own cache, so
@@ -244,4 +290,4 @@ interface ConfigShape {
 declare const LOOMY_SETTINGS_NS = "loomy";
 declare function apply(ctx: Context, config?: ConfigShape): void;
 //#endregion
-export { Config, ConfigShape, LOOMY_API_BASE, LOOMY_AUTH_SESSION_KEY, LOOMY_POINTS_KEY, LOOMY_PROVIDER, LOOMY_SETTINGS_NS, LOOMY_STATUS_PATH, type LoomyAdapter, type LoomyAuthFile, LoomyCatalog, type LoomyCredential, type LoomyModel, type LoomyPointsSummary, type LoomyShim, type LoomyShimOptions, type LoomyStatusRouteOptions, LoomyUpstreamClient, type LoomyWebPoints, type LoomyWebStatus, apply, createLoomyAdapter, createLoomyShim, defaultLoomyAuthPath, defaultLoomyConfigPath, defaultLoomyLocalStorageDir, extractLoomyAuthSessions, extractLoomyPoints, inject, loomyStatusHandler, loomyWebStatus, loopbackHost, loopbackOrigin, name, newestLoomyPoints, parseLoomyAuth, parseLoomyModels, parseLoomyPointsRecord, prepareLoomyBody, readLoomyCredential, readLoomyPoints, readLoomySessionFromStorage, registerLoomyStatusRoute, resetLoomyPointsCache, resolveAuthFile };
+export { Config, ConfigShape, LOOMY_API_BASE, LOOMY_AUTH_SESSION_KEY, LOOMY_POINTS_KEY, LOOMY_PROVIDER, LOOMY_SETTINGS_NS, LOOMY_STATUS_PATH, type LoomyAdapter, type LoomyAuthFile, LoomyCatalog, type LoomyCredential, type LoomyModel, type LoomyPointsSummary, type LoomyShim, type LoomyShimOptions, type LoomyStatusRouteOptions, LoomyUpstreamClient, type LoomyWebPoints, type LoomyWebStatus, apply, createLoomyAdapter, createLoomyShim, defaultLoomyAuthPath, defaultLoomyConfigPath, defaultLoomyLocalStorageDir, extractLoomyAuthSessions, extractLoomyPoints, inject, loomyStatusHandler, loomyWebStatus, loopbackHost, loopbackOrigin, name, newestLoomyPoints, parseLoomyApiModels, parseLoomyAuth, parseLoomyModels, parseLoomyPointsRecord, prepareLoomyBody, readLoomyCredential, readLoomyPoints, readLoomySessionFromStorage, registerLoomyStatusRoute, resetLoomyPointsCache, resolveAuthFile };

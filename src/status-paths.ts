@@ -13,6 +13,19 @@ export interface LoomyWebPoints {
   updatedAt?: string
 }
 
+/** One model as Loomy lists it, including the rate it bills at. */
+export interface LoomyWebModel {
+  id: string
+  /** Loomy's own display name, which carries the rate (e.g. `…（x3.0）`). */
+  name: string
+  /** Points multiplier Loomy prints in the name — 3 for `x3.0`. */
+  rate?: number
+  /** Promotional label Loomy prints in the name, e.g. 限时免费. */
+  promo?: string
+  /** True for image generators: listed for reference, never served to DSH. */
+  image?: boolean
+}
+
 /** The JSON document the plugin card renders. */
 export type LoomyWebStatus =
   | { status: 'signed-out' }
@@ -22,6 +35,8 @@ export type LoomyWebStatus =
     account?: string
     /** How many models the plugin is currently serving. */
     modelCount: number
+    /** Every model the account can reach, including image generators. */
+    models?: LoomyWebModel[]
     points?: LoomyWebPoints
     pointsError?: string
   }

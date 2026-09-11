@@ -29,7 +29,8 @@
 ## 功能
 
 - **零配置**：安装启用后，Loomy 的模型直接出现在 DSH 的模型选择器里。
-- **模型自动发现**：启动时读取 Loomy 的模型清单，只纳入支持文本输出的模型。
+- **模型自动发现**：启动时拉取当前账号可用的模型清单，只纳入支持文本输出的模型。
+- **倍率与优惠**：设置卡片列出全部模型及各自的积分倍率（如 `x3.0`、限时免费），数据随 Loomy 侧调整而变化。
 - **账号与积分**：设置卡片显示当前登录账号、永久积分与每日赠送积分——数值取自 Loomy 自身展示所依赖的同一份数据。
 - **中英双语**：卡片文案跟随 DSH 界面语言。
 
@@ -75,13 +76,11 @@ dsh --profile web --dump-config     # 应出现 llm-loomy 条目
 
 每项查找的优先级：**插件配置（`authFile` / `configFile`）→ 环境变量 → 探测到的默认值**。
 
-默认路径按 macOS / Windows / Linux 顺序探测，取第一个存在的：
+默认路径按 macOS / Windows 顺序探测，取第一个存在的：
 
 | 平台 | 登录态 | 模型清单 | 积分缓存 |
 |---|---|---|---|
-| macOS | `~/Library/Application Support/loomy/auth-session.json` | `~/.config/loomy-opencode/opencode.json` | `~/Library/Application Support/loomy/Local Storage/leveldb` |
 | Windows | `%APPDATA%/loomy/auth-session.json` | `%APPDATA%/loomy-opencode/opencode.json` | `%APPDATA%/loomy/Local Storage/leveldb` |
-| Linux | `~/.config/loomy/auth-session.json` | `~/.config/loomy-opencode/opencode.json` | `~/.config/loomy/Local Storage/leveldb` |
 
 ## 安全边界
 
@@ -98,10 +97,10 @@ dsh --profile web --dump-config     # 应出现 llm-loomy 条目
 ## 已知限制
 
 - 依赖 Loomy 的客户端接口（非官方开放 API），Loomy 更新后插件可能需要随之调整。
-- Windows 版 Loomy 不生成模型清单文件，此时使用内置的兜底模型列表；Loomy 侧新增模型需等待插件更新。
+- 模型清单与倍率取自 Loomy 的接口；接口不可达时回落到 Loomy 生成的配置文件，两者都不可用时才使用内置快照。
 - 积分读自 Loomy 的本地缓存，Loomy 未公开积分接口；缓存不存在时卡片不显示积分，而非显示 0。
 - 模型清单在启动时读取，Loomy 侧增删模型后需重启 DSH 才会同步。
-- Windows / Linux 下若登录态路径未被探测到，需通过 `LOOMY_AUTH_FILE` 手动指定。
+- Windows 下若登录态路径未被探测到，需通过 `LOOMY_AUTH_FILE` 手动指定。
 
 ## 故障排查
 

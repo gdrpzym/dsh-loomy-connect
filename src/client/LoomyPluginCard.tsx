@@ -141,6 +141,10 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
         : t('signedOut')
   const rawUpdatedAt = status.status === 'signed-in' ? status.points?.updatedAt : undefined
   const updatedMs = rawUpdatedAt === undefined ? undefined : Date.parse(rawUpdatedAt)
+  // Loomy prints each model's rate inside its name, so listing the names is
+  // enough; the promo count is the only thing worth calling out separately.
+  const models = status.status === 'signed-in' ? status.models : undefined
+  const freeCount = models === undefined ? 0 : models.filter(model => model.promo !== undefined).length
   return (
     <li className={withModifier(CSS.card, CSS.cardOpen, open)}>
       <button
@@ -212,6 +216,25 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                       <h3 className={CSS.heading}>{t('modelsHeading')}</h3>
                       <Tag tone="neutral">{t('modelsTag', { count: status.modelCount })}</Tag>
                     </div>
+                    {models === undefined
+                      ? null
+                      : (
+                        <>
+                          <ul className={CSS.list}>
+                            {models.map(model => (
+                              <li key={model.id} className={CSS.listItem}>
+                                <span className={CSS.listName}>{model.name}</span>
+                                {model.image === true
+                                  ? <span className={CSS.listNote}>{t('modelsImage')}</span>
+                                  : null}
+                              </li>
+                            ))}
+                          </ul>
+                          {freeCount === 0
+                            ? null
+                            : <p className={CSS.hint}>{t('modelsFreeHint', { count: freeCount })}</p>}
+                        </>
+                      )}
                   </div>
                 </>
               )

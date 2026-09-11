@@ -32,15 +32,12 @@ export const LOOMY_POINTS_KEY = 'loomy-points-summary'
  * Candidate locations of Loomy's Electron `Local Storage/leveldb` cache,
  * most-likely platform first. Loomy is an Electron app, so its data dir
  * follows the platform convention: macOS `~/Library/Application Support/loomy`,
- * Windows `%APPDATA%/loomy`, Linux `~/.config/loomy`. Searching every candidate
- * keeps the points card working on whatever platform Loomy was installed on.
+ * Windows `%APPDATA%/loomy`. Searching every candidate keeps the points card
+ * working on whichever of the two Loomy was installed on.
  */
 export function defaultLoomyLocalStorageCandidates(): string[] {
   const appData = process.env.APPDATA
-  const candidates = [
-    join(homedir(), 'Library', 'Application Support', 'loomy', 'Local Storage', 'leveldb'),
-    join(homedir(), '.config', 'loomy', 'Local Storage', 'leveldb'),
-  ]
+  const candidates = [join(homedir(), 'Library', 'Application Support', 'loomy', 'Local Storage', 'leveldb')]
   if (appData !== undefined) candidates.push(join(appData, 'loomy', 'Local Storage', 'leveldb'))
   return candidates
 }

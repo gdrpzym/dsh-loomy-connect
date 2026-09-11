@@ -15,7 +15,7 @@ import type { LoomyCredential } from './auth.ts'
 import { loopbackHost, loopbackOrigin } from './loopback.ts'
 import type { LoomyPointsSummary } from './points.ts'
 import { LOOMY_STATUS_PATH } from './status-paths.ts'
-import type { LoomyWebStatus } from './status-paths.ts'
+import type { LoomyWebModel, LoomyWebStatus } from './status-paths.ts'
 
 export { LOOMY_STATUS_PATH } from './status-paths.ts'
 export type { LoomyWebStatus } from './status-paths.ts'
@@ -28,6 +28,8 @@ export interface LoomyStatusRouteOptions {
   points: () => Promise<LoomyPointsSummary | undefined>
   /** How many models the plugin currently serves. */
   modelCount: () => number
+  /** Every model the account can reach, for the card to list with its rate. */
+  models?: () => LoomyWebModel[]
 }
 
 function json(res: ServerResponse, status: number, body: unknown): void {
@@ -66,9 +68,11 @@ export async function loomyWebStatus(deps: LoomyStatusRouteOptions): Promise<Loo
     return { status: 'signed-out' }
   }
   if (credential === undefined) return { status: 'signed-out' }
+  const models = deps.models?.()
   const status: LoomyWebStatus = {
     status: 'signed-in',
     modelCount: deps.modelCount(),
+    ...models === undefined || models.length === 0 ? {} : { models },
     ...credential.maskedPhone === undefined ? {} : { account: credential.maskedPhone },
   }
   try {

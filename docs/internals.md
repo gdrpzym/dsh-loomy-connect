@@ -65,6 +65,22 @@
 
 限制：请求体上限 64 MiB，单次请求上限 20 分钟，客户端断开时中断上游。
 
+### 模型清单与倍率来源
+
+`GET {LOOMY_API_BASE}/models`（`https://loomyad.xunfei.cn/api/v1/models`，需带 session）返回账号可用的全部模型，是唯一同时给出**倍率**的数据源：
+
+```jsonc
+{ "id": "deepseek-v4-flash-0731", "name": "DeepSeek V4 Flash 0731（x3.0）",
+  "type": "chat", "context_length": 1048576, "max_output_tokens": 384000,
+  "capabilities": { "reasoning": true, "input_modalities": ["text"], "output_modalities": ["text"] } }
+```
+
+倍率与优惠不在独立字段里，而是写在 `name` 的括号后缀中（`（x3.0）`、`（限时免费）`）。`src/catalog.ts` 用两条正则把它们解析成结构化的 `rate` / `promo`，`name` 本身保持原样交给模型选择器——那里也正好需要显示倍率。
+
+清单里 `type: "image"`（或输出模态不含 text）的模型仍进卡片列表并标注「图像」，但不注册进 provider：DSH 是对话界面，只服务文本输出模型。实测 14 个模型中 12 个可对话。
+
+读取顺序在 `apply()` 的 `reapply()` 里：**接口 → Loomy 生成的配置文件 → 内置快照**。接口失败（未登录、断网）时回落配置文件，配置文件也不存在（Windows 版 Loomy 根本不生成）时用内置快照，保证离线启动仍是一个可用的 provider。
+
 ### 登录态来源：macOS 与 Windows 不同
 
 两个平台的落盘方式不一致，读取顺序为**先文件、后 localStorage**：
@@ -186,9 +202,9 @@ LevelDB 为追加写日志，同一键的旧值残留于文件中。`src/points.
 | `name`, `inject`, `Config`, `apply` | 插件入口 |
 | `createLoomyAdapter`, `LOOMY_PROVIDER`, `LoomyAdapter` | Provider 适配层 |
 | `createLoomyShim`, `resolveAuthFile`, `LoomyShim`, `LoomyShimOptions` | 网关 |
-| `LoomyCatalog`, `parseLoomyModels`, `LoomyModel` | 模型发现 |
+| `LoomyCatalog`, `parseLoomyApiModels`, `parseLoomyModels`, `LoomyModel` | 模型发现 |
 | `defaultLoomyAuthPath`, `defaultLoomyConfigPath`, `LOOMY_AUTH_SESSION_KEY`, `extractLoomyAuthSessions`, `parseLoomyAuth`, `readLoomyCredential`, `readLoomySessionFromStorage`, `LoomyCredential` | 登录态 |
-| `LOOMY_API_BASE`, `LoomyUpstreamClient`, `prepareLoomyBody` | 上游客户端 |
+| `LOOMY_API_BASE`, `LoomyUpstreamClient`, `prepareLoomyBody` | 上游客户端（对话与模型清单） |
 | `loopbackHost`, `loopbackOrigin` | 请求校验 |
 | `LOOMY_POINTS_KEY`, `defaultLoomyLocalStorageDir`, `extractLoomyPoints`, `newestLoomyPoints`, `parseLoomyPointsRecord`, `readLoomyPoints`, `resetLoomyPointsCache`, `LoomyPointsSummary` | 积分 |
 | `LOOMY_STATUS_PATH`, `LoomyWebStatus`, `LoomyWebPoints` | 状态契约 |
@@ -201,7 +217,7 @@ LevelDB 为追加写日志，同一键的旧值残留于文件中。`src/points.
 | `cordis.patch.yml` | 插入 `llm-loomy` 条目的 DSH profile patch |
 | `src/index.ts` | 插件入口：`name` / `inject` / `Config` / `apply` |
 | `src/auth.ts` | 只读读取 Loomy 登录态、平台路径探测 |
-| `src/catalog.ts` | 从 Loomy 清单发现文本模型 |
+| `src/catalog.ts` | 模型发现：接口优先，配置文件与内置快照兜底 |
 | `src/upstream.ts` | 调用 Loomy 上游、归一化请求体 |
 | `src/shim.ts` | 带凭据保护的回环网关 |
 | `src/adapter.ts` | 注册进 DSH `llm` seam 的 pi-ai provider |
