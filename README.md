@@ -37,12 +37,15 @@ dsh web
 
 在 DSH 对话窗口的模型选择器中选择 **Loomy** 即可。每次 DSH 启动时会读取 Loomy 当前的 `imodel` 模型清单，因此 Loomy 升级或服务端调整模型后无需在 DSH 填写 API Key。
 
-默认 macOS 文件位置为：
+默认文件位置按平台自动探测（Loomy 是 Electron 应用，数据目录遵循各平台约定）：
 
-- 登录态：`~/Library/Application Support/loomy/auth-session.json`
-- 模型清单：`~/.config/loomy-opencode/opencode.json`
+- **macOS**：`~/Library/Application Support/loomy/auth-session.json`（登录态）、`~/.config/loomy-opencode/opencode.json`（模型清单）
+- **Windows**：`%APPDATA%/loomy/auth-session.json`（登录态）、`%APPDATA%/loomy-opencode/opencode.json`（模型清单）
+- **Linux**：`~/.config/loomy/auth-session.json`（登录态）、`~/.config/loomy-opencode/opencode.json`（模型清单）
 
-可选地使用插件配置中的 `authFile` 和 `configFile` 覆盖位置；也可使用 `LOOMY_AUTH_FILE` 与 `LOOMY_CONFIG_FILE` 环境变量。该能力主要用于 Windows/Linux 或非标准安装目录。
+插件会在每个平台的所有候选位置里查找第一个真实存在的文件，因此 macOS / Windows / Linux 均可开箱即用，无需任何配置。积分缓存目录 `loomy/Local Storage/leveldb` 同样按平台自动探测。
+
+如需覆盖位置（例如非标准安装目录），可用插件配置里的 `authFile` / `configFile`，或环境变量 `LOOMY_AUTH_FILE` / `LOOMY_CONFIG_FILE`。
 
 ## 设置界面里的插件卡片
 
@@ -53,7 +56,7 @@ dsh web
 Loomy 没有对外暴露积分的 HTTP 接口：模型网关 `loomyad.xunfei.cn` 对 `/v1/credits` 一律 404（`scripts/probe-credits.mjs` 可复现），而渲染进程取积分走的是 `window.electronAPI.points.*` 这条 IPC，只有运行中的 App 能应答。
 
 可行且唯一的外部读法，是读 Loomy 自己的 localStorage 缓存：Electron 把 `loomy-points-summary` 这个键写在
-`~/Library/Application Support/loomy/Local Storage/leveldb/` 里，值为
+`loomy/Local Storage/leveldb/` 里（macOS 为 `~/Library/Application Support/loomy/Local Storage/leveldb/`，Windows 为 `%APPDATA%/loomy/Local Storage/leveldb/`，Linux 为 `~/.config/loomy/Local Storage/leveldb/`），值为
 `{ balance, dailyBalance, updatedAt }` —— `balance` 即 **永久积分**，`dailyBalance` 即 **每日赠送积分**（每日登录后刷新为 5000）。Loomy 自己的侧边栏也是读这份缓存来显示的，所以卡片上的数字与 App 里一致。
 
 LevelDB 是追加写日志，同一个键的历史值会留在文件里，因此 `src/points.ts` 解析出全部候选记录后按 `updatedAt` 取最新一条，而不是信任文件顺序；并按目录 mtime 做记忆化，避免轮询时反复读日志。缓存不存在时卡片显示「还没有积分快照」，不会显示假的 0。

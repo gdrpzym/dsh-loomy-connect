@@ -1,5 +1,6 @@
 /** Read Loomy's desktop sign-in state without ever modifying it. */
 import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
@@ -13,12 +14,60 @@ export interface LoomyCredential {
   maskedPhone?: string
 }
 
-export function defaultLoomyAuthPath(): string {
-  return join(homedir(), 'Library', 'Application Support', 'loomy', 'auth-session.json')
+/**
+ * The XDG config home, falling back to `~/.config` when `XDG_CONFIG_HOME` is
+ * unset (the convention every platform — including Windows — inherits from
+ * OpenCode's XDG-style config layout).
+ */
+function xdgConfigHome(): string {
+  const raw = process.env.XDG_CONFIG_HOME
+  return raw !== undefined && raw.trim() !== '' ? raw : join(homedir(), '.config')
 }
 
+/**
+ * Candidate locations of Loomy's desktop sign-in session, most-likely platform
+ * first. Loomy is an Electron app, so its data dir follows the platform
+ * convention: macOS `~/Library/Application Support/loomy`, Windows
+ * `%APPDATA%/loomy`, Linux `~/.config/loomy`. Searching every candidate keeps
+ * the plugin working whether it was installed on macOS, Windows, or Linux.
+ */
+export function defaultLoomyAuthCandidates(): string[] {
+  const appData = process.env.APPDATA
+  const candidates = [
+    join(homedir(), 'Library', 'Application Support', 'loomy', 'auth-session.json'),
+    join(xdgConfigHome(), 'loomy', 'auth-session.json'),
+  ]
+  if (appData !== undefined) candidates.push(join(appData, 'loomy', 'auth-session.json'))
+  return candidates
+}
+
+/** The first existing auth file, or the primary platform default when none yet. */
+export function defaultLoomyAuthPath(): string {
+  for (const candidate of defaultLoomyAuthCandidates()) {
+    if (existsSync(candidate)) return candidate
+  }
+  return defaultLoomyAuthCandidates()[0]
+}
+
+/**
+ * Candidate locations of Loomy's generated OpenCode model config, most-likely
+ * platform first. macOS uses `~/.config/loomy-opencode` (XDG); on Windows the
+ * same layout lands under `%APPDATA%/loomy-opencode` or
+ * `%USERPROFILE%/.config/loomy-opencode`.
+ */
+export function defaultLoomyConfigCandidates(): string[] {
+  const appData = process.env.APPDATA
+  const candidates = [join(xdgConfigHome(), 'loomy-opencode', 'opencode.json')]
+  if (appData !== undefined) candidates.push(join(appData, 'loomy-opencode', 'opencode.json'))
+  return candidates
+}
+
+/** The first existing config file, or the primary platform default when none yet. */
 export function defaultLoomyConfigPath(): string {
-  return join(homedir(), '.config', 'loomy-opencode', 'opencode.json')
+  for (const candidate of defaultLoomyConfigCandidates()) {
+    if (existsSync(candidate)) return candidate
+  }
+  return defaultLoomyConfigCandidates()[0]
 }
 
 export function parseLoomyAuth(text: string): LoomyCredential | undefined {

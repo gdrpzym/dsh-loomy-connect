@@ -59,7 +59,9 @@ interface LoomyCredential {
   /** Already-masked phone number Loomy stores alongside the session, for display only. */
   maskedPhone?: string;
 }
+/** The first existing auth file, or the primary platform default when none yet. */
 declare function defaultLoomyAuthPath(): string;
+/** The first existing config file, or the primary platform default when none yet. */
 declare function defaultLoomyConfigPath(): string;
 declare function parseLoomyAuth(text: string): LoomyCredential | undefined;
 declare function readLoomyCredential(authFile?: string): Promise<LoomyCredential>;
@@ -116,6 +118,8 @@ declare function loopbackOrigin(value: string | undefined): boolean;
  */
 /** The localStorage key Loomy's renderer writes the points summary to. */
 declare const LOOMY_POINTS_KEY = "loomy-points-summary";
+/** The first existing localStorage dir, or the primary platform default when none yet. */
+declare function defaultLoomyLocalStorageDir(): string;
 /** One account's points split the way Loomy's own UI presents it. */
 interface LoomyPointsSummary {
   /** Long-lived points — Loomy labels these 永久积分. */
@@ -125,8 +129,6 @@ interface LoomyPointsSummary {
   /** ISO timestamp of the last time Loomy refreshed the summary. */
   updatedAt?: string;
 }
-/** Default location of Loomy's Electron localStorage LevelDB. */
-declare function defaultLoomyLocalStorageDir(): string;
 /** Parse one cached record, keeping only the fields the card renders. */
 declare function parseLoomyPointsRecord(raw: string): LoomyPointsSummary | undefined;
 /** Every cached summary in one LevelDB log, oldest first. */

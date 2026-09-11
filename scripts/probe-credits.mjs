@@ -7,13 +7,17 @@
  *
  * Usage: node scripts/probe-credits.mjs
  */
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-const auth = JSON.parse(
-  readFileSync(process.env.LOOMY_AUTH_FILE ?? join(homedir(), 'Library', 'Application Support', 'loomy', 'auth-session.json'), 'utf8'),
-)
+const authCandidates = [
+  join(homedir(), 'Library', 'Application Support', 'loomy', 'auth-session.json'),
+  join(homedir(), '.config', 'loomy', 'auth-session.json'),
+  ...(process.env.APPDATA ? [join(process.env.APPDATA, 'loomy', 'auth-session.json')] : []),
+]
+const authFile = process.env.LOOMY_AUTH_FILE ?? authCandidates.find(c => existsSync(c)) ?? authCandidates[0]
+const auth = JSON.parse(readFileSync(authFile, 'utf8'))
 const headers = {
   Accept: 'application/json',
   Authorization: `Bearer ${auth.session}`,

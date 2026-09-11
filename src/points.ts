@@ -21,11 +21,37 @@
  */
 
 import { readdir, readFile, stat } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 /** The localStorage key Loomy's renderer writes the points summary to. */
 export const LOOMY_POINTS_KEY = 'loomy-points-summary'
+
+/**
+ * Candidate locations of Loomy's Electron `Local Storage/leveldb` cache,
+ * most-likely platform first. Loomy is an Electron app, so its data dir
+ * follows the platform convention: macOS `~/Library/Application Support/loomy`,
+ * Windows `%APPDATA%/loomy`, Linux `~/.config/loomy`. Searching every candidate
+ * keeps the points card working on whatever platform Loomy was installed on.
+ */
+export function defaultLoomyLocalStorageCandidates(): string[] {
+  const appData = process.env.APPDATA
+  const candidates = [
+    join(homedir(), 'Library', 'Application Support', 'loomy', 'Local Storage', 'leveldb'),
+    join(homedir(), '.config', 'loomy', 'Local Storage', 'leveldb'),
+  ]
+  if (appData !== undefined) candidates.push(join(appData, 'loomy', 'Local Storage', 'leveldb'))
+  return candidates
+}
+
+/** The first existing localStorage dir, or the primary platform default when none yet. */
+export function defaultLoomyLocalStorageDir(): string {
+  for (const candidate of defaultLoomyLocalStorageCandidates()) {
+    if (existsSync(candidate)) return candidate
+  }
+  return defaultLoomyLocalStorageCandidates()[0]
+}
 
 /** One account's points split the way Loomy's own UI presents it. */
 export interface LoomyPointsSummary {
@@ -35,11 +61,6 @@ export interface LoomyPointsSummary {
   daily: number
   /** ISO timestamp of the last time Loomy refreshed the summary. */
   updatedAt?: string
-}
-
-/** Default location of Loomy's Electron localStorage LevelDB. */
-export function defaultLoomyLocalStorageDir(): string {
-  return join(homedir(), 'Library', 'Application Support', 'loomy', 'Local Storage', 'leveldb')
 }
 
 /**
