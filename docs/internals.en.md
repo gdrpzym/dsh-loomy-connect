@@ -81,7 +81,7 @@ The settings card does the opposite: it strips the suffix from the displayed nam
 
 Models with `type: "image"` (or no text output modality) still appear in the card, marked as image, but are never registered with the provider: DSH is a chat surface. In practice 12 of the 14 models are servable.
 
-The card is further split into two tabs — **Account** and **Models**. Account shows sign-in state, masked phone, and credit balance (long-lived / daily). Models lists each model's name, type (chat / image), rate and promo as a green pill, and its context window (`contextWindow`, shown only when Loomy's list provides it). The tabs are an in-card controlled switch; no official Tab primitive is involved.
+The card is further split into two tabs — **Points** and **Models**. Sign-in state and the masked phone live in the status row above the tabs (dot + label, never inside a tab); Points lists the credit balance (long-lived / daily); Models lists each model's name, type (chat / image), rate and promo as a green pill, and its context window (`contextWindow`, shown only when Loomy's list provides it). The tabs are an in-card controlled switch; no official Tab primitive is involved.
 
 Image-type models do **not** appear in Loomy's chat model picker: they are invoked by skills (avatar / cover / PPT) through a separate image-generation endpoint — e.g. the avatar-gen skill calls `doubao-seedream-5-lite` via `…/images/generations` on `ossptest.voicecloud.cn/loomy/integration/api/v1`, not the chat host `loomyad.xunfei.cn`. `/v1/models` still lists them, so the plugin marks `image: true` and shows them for reference only, never registering them with the provider.
 

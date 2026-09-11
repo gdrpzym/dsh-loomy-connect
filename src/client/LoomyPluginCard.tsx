@@ -117,7 +117,7 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState<LoomyWebStatus>({ status: 'signed-out' })
   const [busy, setBusy] = useState(false)
-  /** Which of the three tabs (账户 / 模型 / 生图) is showing. */
+  /** Which of the three tabs (积分 / 模型 / 生图) is showing. */
   const [tab, setTab] = useState<'account' | 'models' | 'imagegen'>('account')
   const mounted = useRef(true)
   useEffect(() => {
@@ -244,7 +244,7 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                       className={withModifier(CSS.tab, CSS.tabActive, tab === 'account')}
                       onClick={() => setTab('account')}
                     >
-                      {t('tabAccount')}
+                      {t('tabPoints')}
                     </button>
                     <button
                       type="button"
@@ -268,12 +268,8 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                   {tab === 'account'
                     ? (
                       <>
-                        <div className={CSS.section}>
-                          <h3 className={CSS.heading}>{t('accountHeading')}</h3>
-                          <p className={CSS.text}>
-                            {status.account === undefined ? t('signedIn') : t('signedInAs', { account: status.account })}
-                          </p>
-                        </div>
+                        {/* 登录态与账号在卡片顶部的状态行里已展示（StateDot + label），
+                            这里不再重复渲染账号小节，「积分」标签页只承载积分余额。 */}
                         <div className={CSS.section}>
                           <h3 className={CSS.heading}>{t('pointsHeading')}</h3>
                           {status.points === undefined
