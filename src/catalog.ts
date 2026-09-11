@@ -33,7 +33,6 @@ const FALLBACK: readonly LoomyModel[] = [
   { id: 'qwen-3.8-max', name: 'Qwen 3.8 Max', contextWindow: 1_000_000, maxTokens: 65_536, supportsImages: false, reasoning: true },
   { id: 'GLM-5.3-Flash', name: 'GLM 5.3 Flash', contextWindow: 1_048_576, maxTokens: 131_072, supportsImages: true, reasoning: true },
   { id: 'qwen3.8-flash', name: 'Qwen 3.8 Flash', contextWindow: 1_000_000, maxTokens: 131_072, supportsImages: true, reasoning: true },
-  { id: 'DeepSeek-V4-Flash-Vision-Exp', name: 'DeepSeek V4 Flash Vision Exp', contextWindow: 1_000_000, maxTokens: 384_000, supportsImages: true, reasoning: true },
   { id: 'DeepSeek-V4-Pro-0813', name: 'DeepSeek V4 Pro 0813', contextWindow: 1_000_000, maxTokens: 393_216, supportsImages: false, reasoning: true },
   { id: 'spark-x', name: 'Spark X2.5', contextWindow: 1_048_576, maxTokens: 65_536, supportsImages: false, reasoning: true },
   { id: 'doubao-seed-2.0-mini', name: 'Doubao Seed 2.0 mini', contextWindow: 262_144, maxTokens: 131_072, supportsImages: true, reasoning: true },

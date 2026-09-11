@@ -179,6 +179,9 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
   const rawUpdatedAt = status.status === 'signed-in' ? status.points?.updatedAt : undefined
   const updatedMs = rawUpdatedAt === undefined ? undefined : Date.parse(rawUpdatedAt)
   const models = status.status === 'signed-in' ? status.models : undefined
+  // The list also carries image generators the provider never serves, so the
+  // count in the tag and the row count differ unless both are explained.
+  const imageCount = models === undefined ? 0 : models.filter(model => model.image === true).length
   return (
     <li className={withModifier(CSS.card, CSS.cardOpen, open)}>
       <button
@@ -270,14 +273,17 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                                 <span className={CSS.listMeta}>
                                   {model.rate === undefined
                                     ? null
-                                    : <span className={CSS.listRate}>{formatRate(model.rate)}</span>}
+                                    : <span className={CSS.pill}>{formatRate(model.rate)}</span>}
                                   {model.promo === undefined
                                     ? null
-                                    : <span className={CSS.listPromo}>{promoLabel(model.promo, t)}</span>}
+                                    : <span className={CSS.pill}>{promoLabel(model.promo, t)}</span>}
                                 </span>
                               </li>
                             ))}
                           </ul>
+                          {imageCount === 0
+                            ? null
+                            : <p className={CSS.hint}>{t('modelsImageHint', { count: imageCount })}</p>}
                         </>
                       )}
                   </div>
