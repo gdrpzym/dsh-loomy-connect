@@ -15,6 +15,7 @@ import type { ReactElement } from 'react'
 import {
   Button,
   IconChevronDownOutline14,
+  IconRefreshOutline14,
   StateDot,
   Tag,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -37,6 +38,9 @@ export type LoomyPluginCardProps =
   & Partial<LoomyPluginCardInjected>
 
 const POLL_INTERVAL_MS = 60_000
+
+/** Shortest time the refresh button stays visibly busy. */
+const MIN_BUSY_MS = 600
 
 /** Join the base class with its modifier, the way the official shell does. */
 function withModifier(base: string, modifier: string, on: boolean): string {
@@ -85,9 +89,11 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
     }
   }, [])
   const refresh = useCallback(
-    async (signal?: AbortSignal) => {
+    async (signal?: AbortSignal, force = false) => {
       try {
-        const response = await fetch(LOOMY_STATUS_PATH, {
+        // `force` is the manual button: it makes the host re-pull the catalog
+        // and re-read Loomy's points cache instead of answering from memory.
+        const response = await fetch(force ? `${LOOMY_STATUS_PATH}?refresh=1` : LOOMY_STATUS_PATH, {
           headers: { accept: 'application/json' },
           credentials: 'same-origin',
           ...signal === undefined ? {} : { signal },
@@ -124,9 +130,14 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
   }, [open, refresh, status.status])
   const manualRefresh = async (): Promise<void> => {
     setBusy(true)
+    const started = Date.now()
     try {
-      await refresh()
+      await refresh(undefined, true)
     } finally {
+      // A reply fast enough to skip the animation reads as a dead button, so
+      // hold the busy state long enough to be seen.
+      const elapsed = Date.now() - started
+      if (elapsed < MIN_BUSY_MS) await new Promise(resolve => window.setTimeout(resolve, MIN_BUSY_MS - elapsed))
       if (mounted.current) setBusy(false)
     }
   }
@@ -177,7 +188,10 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                   disabled={busy}
                   onClick={() => void manualRefresh()}
                 >
-                  {busy ? t('refreshing') : t('refresh')}
+                  <span className={CSS.refreshInner}>
+                    <IconRefreshOutline14 className={busy ? CSS.refreshSpin : undefined} />
+                    <span>{busy ? t('refreshing') : t('refresh')}</span>
+                  </span>
                 </Button>
               </div>
             </div>
@@ -205,6 +219,7 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                           {updatedMs === undefined || Number.isNaN(updatedMs)
                             ? null
                             : <p className={CSS.hint}>{t('updatedAt', { time: formatTime(updatedMs) })}</p>}
+                          <p className={CSS.hint}>{t('pointsSourceHint')}</p>
                         </>
                       )}
                     {status.pointsError === undefined

@@ -44,6 +44,8 @@ export const CSS = {
   listItem: 'dlc_listItem',
   listName: 'dlc_listName',
   listNote: 'dlc_listNote',
+  refreshInner: 'dlc_refreshInner',
+  refreshSpin: 'dlc_refreshSpin',
 } as const
 
 const STYLESHEET = `
@@ -77,6 +79,9 @@ const STYLESHEET = `
 .dlc_listItem{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
 .dlc_listName{color:var(--dsw-alias-label-secondary);font-size:13px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dlc_listNote{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5;flex:none}
+.dlc_refreshInner{display:inline-flex;align-items:center;gap:6px}
+.dlc_refreshSpin{animation:dlc_spin .7s linear infinite}
+@keyframes dlc_spin{to{transform:rotate(360deg)}}
 `
 
 /**

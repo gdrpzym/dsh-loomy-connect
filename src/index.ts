@@ -7,7 +7,7 @@ import { LoomyCatalog } from './catalog.ts'
 import { createLoomyAdapter, LOOMY_PROVIDER } from './adapter.ts'
 import { readLoomyCredential } from './auth.ts'
 import { createLoomyShim } from './shim.ts'
-import { readLoomyPoints } from './points.ts'
+import { readLoomyPoints, resetLoomyPointsCache } from './points.ts'
 import { registerLoomyStatusRoute } from './web-status.ts'
 
 export const name = 'llm-loomy'
@@ -40,6 +40,9 @@ export interface ConfigShape {
  */
 export const LOOMY_SETTINGS_NS = 'loomy'
 
+/** Minimum gap between two forced refreshes; each one costs an upstream call. */
+const REFRESH_THROTTLE_MS = 5_000
+
 export function apply(ctx: Context, config: ConfigShape = {}): void {
   // The authoritative section: the composition entry until the settings
   // provider attaches, then the resolved section (user layer over entry). The
@@ -67,11 +70,21 @@ export function apply(ctx: Context, config: ConfigShape = {}): void {
       ...model.promo === undefined ? {} : { promo: model.promo },
       ...model.image === true ? { image: true } : {},
     })),
+    refresh: async () => {
+      // The card's button is the only caller, but it can be clicked repeatedly:
+      // one refresh per window is plenty, and each one hits Loomy's API.
+      const now = Date.now()
+      if (now - lastRefresh < REFRESH_THROTTLE_MS) return
+      lastRefresh = now
+      resetLoomyPointsCache()
+      await reapply?.()
+    },
   }))
 
   // Set once the provider is live, so an early `onChange` (installSection calls
   // it synchronously at attach, before the adapter exists) is a harmless no-op.
   let reapply: (() => Promise<void>) | undefined
+  let lastRefresh = 0
 
   // Registering the namespace is what makes the browser card reachable: the
   // Plugin configuration tab renders the intersection of the namespaces the

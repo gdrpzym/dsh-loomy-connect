@@ -30,6 +30,11 @@ export interface LoomyStatusRouteOptions {
   modelCount: () => number
   /** Every model the account can reach, for the card to list with its rate. */
   models?: () => LoomyWebModel[]
+  /**
+   * Re-pull the catalog and drop the memoized points read. Called for an
+   * explicit refresh only — the card's polling pass must stay cheap.
+   */
+  refresh?: () => Promise<void>
 }
 
 function json(res: ServerResponse, status: number, body: unknown): void {
@@ -56,11 +61,17 @@ function loopbackRequest(req: IncomingMessage): boolean {
 }
 
 /**
- * Assemble the card's status document. Points come from Loomy's own cache, so
- * a missing or unreadable cache degrades to `pointsError` rather than failing
- * the whole document.
+ * Assemble the card's status document.
+ *
+ * `force` re-reads everything before answering: the model list is re-pulled and
+ * the memoized points read is dropped. Without it the answer is assembled from
+ * whatever the host already holds, which is what the card's polling wants.
+ *
+ * Points come from Loomy's own cache, so a missing or unreadable cache
+ * degrades to `pointsError` rather than failing the whole document.
  */
-export async function loomyWebStatus(deps: LoomyStatusRouteOptions): Promise<LoomyWebStatus> {
+export async function loomyWebStatus(deps: LoomyStatusRouteOptions, force = false): Promise<LoomyWebStatus> {
+  if (force) await deps.refresh?.()
   let credential: LoomyCredential | undefined
   try {
     credential = await deps.credential()
@@ -104,8 +115,10 @@ export function loomyStatusHandler(
       json(res, 403, { error: 'request-not-trusted' })
       return
     }
+    // `?refresh=1` is the card's manual refresh: re-pull before answering.
+    const url = new URL(req.url ?? '/', 'http://localhost')
     try {
-      json(res, 200, await loomyWebStatus(deps))
+      json(res, 200, await loomyWebStatus(deps, url.searchParams.get('refresh') === '1'))
     } catch (error: unknown) {
       json(res, 500, { error: safeMessage(error) })
     }

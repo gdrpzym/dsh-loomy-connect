@@ -246,13 +246,23 @@ interface LoomyStatusRouteOptions {
   modelCount: () => number;
   /** Every model the account can reach, for the card to list with its rate. */
   models?: () => LoomyWebModel[];
+  /**
+   * Re-pull the catalog and drop the memoized points read. Called for an
+   * explicit refresh only — the card's polling pass must stay cheap.
+   */
+  refresh?: () => Promise<void>;
 }
 /**
- * Assemble the card's status document. Points come from Loomy's own cache, so
- * a missing or unreadable cache degrades to `pointsError` rather than failing
- * the whole document.
+ * Assemble the card's status document.
+ *
+ * `force` re-reads everything before answering: the model list is re-pulled and
+ * the memoized points read is dropped. Without it the answer is assembled from
+ * whatever the host already holds, which is what the card's polling wants.
+ *
+ * Points come from Loomy's own cache, so a missing or unreadable cache
+ * degrades to `pointsError` rather than failing the whole document.
  */
-declare function loomyWebStatus(deps: LoomyStatusRouteOptions): Promise<LoomyWebStatus>;
+declare function loomyWebStatus(deps: LoomyStatusRouteOptions, force?: boolean): Promise<LoomyWebStatus>;
 /** The status route's request handler, extracted so tests can mount it on a bare server. */
 declare function loomyStatusHandler(deps: LoomyStatusRouteOptions): (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 /** Mount the GET status route on an optional webServer context. */
