@@ -160,6 +160,20 @@ return runtime.Config['~standard'].validate(config).value   // 有导出 → 校
 | `src/client/locales.ts` | 中英文案 |
 | `scripts/*.mjs` | 只读诊断脚本（探上游 / 探网关 / 探适配层 / 全链路 e2e） |
 
+## 免责声明
+
+- 本项目**仅供个人学习和研究使用**，仅驱动使用者自己的 Loomy 账号在本机调用，请勿用于商业用途或超出个人合理使用的场景。
+- 使用者需遵守 Loomy 的服务条款；因使用本项目产生的任何后果（包括但不限于账号被限制、额度被清空、服务中断），由使用者自行承担。
+- 本项目作者不对任何因使用或滥用本项目产生的直接或间接损失负责。
+- 本项目与 Loomy、讯飞（iFlytek）、DeepSeek 均无关联，未获其授权或认可；文中出现的名称仅用于描述兼容关系，其商标权利归各自所有。
+
+## Disclaimer
+
+- This project is for **personal learning and research only**, driving your own Loomy account on your own machine. Do not use it commercially or beyond reasonable personal use.
+- Users must comply with the Loomy terms of service. Any consequence of using this project (including but not limited to account restrictions, depleted credit, or service interruption) is borne by the user.
+- The author is not liable for any direct or indirect loss arising from the use or misuse of this project.
+- This project is not affiliated with, endorsed by, or sponsored by Loomy, iFlytek, or DeepSeek. Product names are used for compatibility description only; trademarks belong to their respective owners.
+
 ## 致谢
 
 本项目参考了 [dsh-workbuddy-connect](https://github.com/corrinehu/dsh-workbuddy-connect) 的 DSH provider 架构（MIT）。
