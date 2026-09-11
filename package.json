@@ -22,6 +22,14 @@
     "LICENSE"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gdrpzym/dsh-loomy-connect.git"
+  },
+  "homepage": "https://github.com/gdrpzym/dsh-loomy-connect#readme",
+  "bugs": {
+    "url": "https://github.com/gdrpzym/dsh-loomy-connect/issues"
+  },
   "keywords": [
     "dsh-plugin",
     "deepseek-harness",
