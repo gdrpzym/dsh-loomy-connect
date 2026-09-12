@@ -79,7 +79,7 @@ export const zh = {
   modelsColType: '类型',
   modelsColContext: '上下文',
   modelsColBill: '计费',
-  modelsContextNone: '未提供',
+  modelsContextNone: '—',
   imagegenHeading: '生图',
   imagegenTag: '{count} 个图像模型',
   imagegenComingSoon: '测试中，敬请期待。',
