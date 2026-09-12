@@ -23,7 +23,7 @@ import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-settings-plugins/client'
 import { LOOMY_STATUS_PATH } from '../status-paths.ts'
-import type { LoomyWebStatus } from '../status-paths.ts'
+import type { LoomyWebModel, LoomyWebStatus } from '../status-paths.ts'
 import type { LoomySettingsKey } from './locales.ts'
 import { CSS } from './card-css.ts'
 
@@ -100,6 +100,38 @@ function promoLabel(promo: string, t: LoomyPluginCardInjected['t']): string {
   return /免费/u.test(promo) ? t('badgeLimitedFree') : promo
 }
 
+/**
+ * One model-table row: name / context / billing. The type column is gone —
+ * image generators simply sort to the bottom of the list, so rows stay
+ * name-first and nothing squeezes the model column.
+ */
+function renderModelRow(model: LoomyWebModel, t: LoomyPluginCardInjected['t']): ReactElement {
+  return (
+    <div key={model.id} className={CSS.tableRow} role="row">
+      <span className={CSS.tableCell} role="gridcell">
+        <span className={CSS.listName}>{modelName(model.name)}</span>
+      </span>
+      <span className={CSS.tableCell} role="gridcell">
+        {model.contextWindow === undefined
+          ? <span className={CSS.ctx}>{t('modelsContextNone')}</span>
+          : <span className={CSS.ctx}>{formatContext(model.contextWindow)}</span>}
+      </span>
+      <span className={CSS.tableCell} role="gridcell">
+        {model.rate === undefined && model.promo === undefined
+          ? <span className={CSS.dash}>—</span>
+          : <span className={CSS.listMeta}>
+              {model.rate === undefined
+                ? null
+                : <span className={CSS.pill}>{formatRate(model.rate)}</span>}
+              {model.promo === undefined
+                ? null
+                : <span className={CSS.pill}>{promoLabel(model.promo, t)}</span>}
+            </span>}
+      </span>
+    </div>
+  )
+}
+
 /** One labelled number: the permanent or the daily-gift balance. */
 function PointsTile({ label, value, hint }: { label: string; value: number; hint: string }): ReactElement {
   return (
@@ -117,8 +149,8 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
   const [open, setOpen] = useState(false)
   const [status, setStatus] = useState<LoomyWebStatus>({ status: 'signed-out' })
   const [busy, setBusy] = useState(false)
-  /** Which of the three tabs (积分 / 模型 / 生图) is showing. */
-  const [tab, setTab] = useState<'account' | 'models' | 'imagegen'>('account')
+  /** Which of the two tabs (积分 / 模型) is showing. */
+  const [tab, setTab] = useState<'account' | 'models'>('account')
   const mounted = useRef(true)
   useEffect(() => {
     mounted.current = true
@@ -193,7 +225,6 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
   const models = status.status === 'signed-in' ? status.models : undefined
   // The list also carries image generators the provider never serves, so the
   // count in the tag and the row count differ unless both are explained.
-  const imageCount = models === undefined ? 0 : models.filter(model => model.image === true).length
   return (
     <li className={withModifier(CSS.card, CSS.cardOpen, open)}>
       <button
@@ -255,15 +286,6 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                     >
                       {t('tabModels')}
                     </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={tab === 'imagegen'}
-                      className={withModifier(CSS.tab, CSS.tabActive, tab === 'imagegen')}
-                      onClick={() => setTab('imagegen')}
-                    >
-                      {t('tabImagegen')}
-                    </button>
                   </div>
                   {tab === 'account'
                     ? (
@@ -300,8 +322,7 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                         </div>
                       </>
                     )
-                    : tab === 'models'
-                      ? (
+                    : (
                       <div className={CSS.section}>
                         <div className={CSS.row}>
                           <h3 className={CSS.heading}>{t('modelsHeading')}</h3>
@@ -311,64 +332,19 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                           ? null
                           : (
                             <>
-                              <ul className={CSS.list}>
-                                {models.map(model => (
-                                  <li key={model.id} className={CSS.listItem}>
-                                    <span className={CSS.listMain}>
-                                      <span className={CSS.listName}>{modelName(model.name)}</span>
-                                      <span className={CSS.typeChip}>
-                                        {model.image === true ? t('modelsImage') : t('typeChat')}
-                                      </span>
-                                    </span>
-                                    <span className={CSS.listMeta}>
-                                      {model.contextWindow === undefined
-                                        ? <span className={CSS.ctx}>{t('modelsContextUnknown')}</span>
-                                        : <span className={CSS.ctx}>{t('modelsContext', { size: formatContext(model.contextWindow) })}</span>}
-                                      {model.rate === undefined
-                                        ? null
-                                        : <span className={CSS.pill}>{formatRate(model.rate)}</span>}
-                                      {model.promo === undefined
-                                        ? null
-                                        : <span className={CSS.pill}>{promoLabel(model.promo, t)}</span>}
-                                    </span>
-                                  </li>
-                                ))}
-                              </ul>
-                              {imageCount === 0
-                                ? null
-                                : <p className={CSS.hint}>{t('modelsImageHint', { count: imageCount })}</p>}
+                              <div className={CSS.table} role="grid">
+                                <div className={CSS.tableHeader} role="row">
+                                  <span role="columnheader">{t('modelsColModel')}</span>
+                                  <span role="columnheader">{t('modelsColContext')}</span>
+                                  <span role="columnheader">{t('modelsColBill')}</span>
+                                </div>
+                                {models.filter(model => model.image !== true).map(model => renderModelRow(model, t))}
+                                {models.filter(model => model.image === true).map(model => renderModelRow(model, t))}
+                              </div>
                             </>
                           )}
                       </div>
-                      )
-                      : (
-                        <div className={CSS.section}>
-                          <div className={CSS.row}>
-                            <h3 className={CSS.heading}>{t('imagegenHeading')}</h3>
-                            {imageCount === 0 ? null : <Tag tone="neutral">{t('imagegenTag', { count: imageCount })}</Tag>}
-                          </div>
-                          <p className={CSS.text}>{t('imagegenComingSoon')}</p>
-                          {models === undefined
-                            ? null
-                            : imageCount === 0
-                              ? <p className={CSS.hint}>{t('imagegenNone')}</p>
-                              : (
-                                <>
-                                  <ul className={CSS.list}>
-                                    {models.filter(model => model.image === true).map(model => (
-                                      <li key={model.id} className={CSS.listItem}>
-                                        <span className={CSS.listMain}>
-                                          <span className={CSS.listName}>{modelName(model.name)}</span>
-                                          <span className={CSS.pill}>{t('imagegenPill')}</span>
-                                        </span>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                  <p className={CSS.hint}>{t('imagegenHint', { count: imageCount })}</p>
-                                </>
-                              )}
-                        </div>
-                      )}
+                    )}
                 </>
               )
               : null}
