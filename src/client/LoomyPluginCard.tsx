@@ -311,29 +311,43 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                           ? null
                           : (
                             <>
-                              <ul className={CSS.list}>
+                              <div className={CSS.table} role="grid">
+                                <div className={CSS.tableHeader} role="row">
+                                  <span role="columnheader">{t('modelsColModel')}</span>
+                                  <span role="columnheader">{t('modelsColType')}</span>
+                                  <span role="columnheader">{t('modelsColContext')}</span>
+                                  <span role="columnheader">{t('modelsColBill')}</span>
+                                </div>
                                 {models.map(model => (
-                                  <li key={model.id} className={CSS.listItem}>
-                                    <span className={CSS.listMain}>
+                                  <div key={model.id} className={CSS.tableRow} role="row">
+                                    <span className={CSS.tableCell} role="gridcell">
                                       <span className={CSS.listName}>{modelName(model.name)}</span>
+                                    </span>
+                                    <span className={CSS.tableCell} role="gridcell">
                                       <span className={CSS.typeChip}>
                                         {model.image === true ? t('modelsImage') : t('typeChat')}
                                       </span>
                                     </span>
-                                    <span className={CSS.listMeta}>
+                                    <span className={CSS.tableCell} role="gridcell">
                                       {model.contextWindow === undefined
-                                        ? <span className={CSS.ctx}>{t('modelsContextUnknown')}</span>
-                                        : <span className={CSS.ctx}>{t('modelsContext', { size: formatContext(model.contextWindow) })}</span>}
-                                      {model.rate === undefined
-                                        ? null
-                                        : <span className={CSS.pill}>{formatRate(model.rate)}</span>}
-                                      {model.promo === undefined
-                                        ? null
-                                        : <span className={CSS.pill}>{promoLabel(model.promo, t)}</span>}
+                                        ? <span className={CSS.ctx}>{t('modelsContextNone')}</span>
+                                        : <span className={CSS.ctx}>{formatContext(model.contextWindow)}</span>}
                                     </span>
-                                  </li>
+                                    <span className={CSS.tableCell} role="gridcell">
+                                      {model.rate === undefined && model.promo === undefined
+                                        ? <span className={CSS.dash}>—</span>
+                                        : <span className={CSS.listMeta}>
+                                            {model.rate === undefined
+                                              ? null
+                                              : <span className={CSS.pill}>{formatRate(model.rate)}</span>}
+                                            {model.promo === undefined
+                                              ? null
+                                              : <span className={CSS.pill}>{promoLabel(model.promo, t)}</span>}
+                                          </span>}
+                                    </span>
+                                  </div>
                                 ))}
-                              </ul>
+                              </div>
                               {imageCount === 0
                                 ? null
                                 : <p className={CSS.hint}>{t('modelsImageHint', { count: imageCount })}</p>}

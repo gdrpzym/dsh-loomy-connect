@@ -54,6 +54,11 @@ export const CSS = {
   tabActive: 'dlc_tabActive',
   typeChip: 'dlc_typeChip',
   ctx: 'dlc_ctx',
+  table: 'dlc_table',
+  tableHeader: 'dlc_tableHeader',
+  tableRow: 'dlc_tableRow',
+  tableCell: 'dlc_tableCell',
+  dash: 'dlc_dash',
 } as const
 
 const STYLESHEET = `
@@ -104,6 +109,15 @@ const STYLESHEET = `
 .dlc_tabActive{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .dlc_typeChip{padding:1px 8px;border-radius:999px;font-size:11px;line-height:18px;white-space:nowrap;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-tertiary)}
 .dlc_ctx{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5;white-space:nowrap;font-variant-numeric:tabular-nums}
+/* Models tab as a grid table: name / type / context / billing land in their own
+   columns, so the type chip no longer squeezes the name and rows scan cleanly. */
+.dlc_table{align-items:center;display:grid;margin:8px 0 0;grid-template-columns:minmax(104px,2fr) minmax(52px,auto) minmax(68px,1fr) minmax(72px,auto)}
+.dlc_tableHeader{align-items:center;color:var(--dsw-alias-label-tertiary);font-size:12px;font-weight:500;line-height:1.5;padding:8px;grid-template-columns:minmax(104px,2fr) minmax(52px,auto) minmax(68px,1fr) minmax(72px,auto)}
+.dlc_tableRow{align-items:center;border-bottom:.5px solid var(--dsw-alias-border-l2);padding:5px 8px;grid-template-columns:minmax(104px,2fr) minmax(52px,auto) minmax(68px,1fr) minmax(72px,auto)}
+.dlc_tableRow:last-child{border-bottom:0}
+.dlc_tableCell{align-items:center;display:flex;gap:6px;min-width:0}
+.dlc_tableCell>.dlc_listName{flex:1 1 auto;min-width:0}
+.dlc_dash{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5}
 `
 
 /**
