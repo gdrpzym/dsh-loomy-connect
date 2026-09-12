@@ -102,8 +102,8 @@ function promoLabel(promo: string, t: LoomyPluginCardInjected['t']): string {
 
 /**
  * One model-table row: name / context / billing. The type column is gone —
- * image generators are separated from chat models by a divider instead of a
- * per-row chip, so rows stay name-first and nothing squeezes the model column.
+ * image generators simply sort to the bottom of the list, so rows stay
+ * name-first and nothing squeezes the model column.
  */
 function renderModelRow(model: LoomyWebModel, t: LoomyPluginCardInjected['t']): ReactElement {
   return (
@@ -225,7 +225,6 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
   const models = status.status === 'signed-in' ? status.models : undefined
   // The list also carries image generators the provider never serves, so the
   // count in the tag and the row count differ unless both are explained.
-  const imageCount = models === undefined ? 0 : models.filter(model => model.image === true).length
   return (
     <li className={withModifier(CSS.card, CSS.cardOpen, open)}>
       <button
@@ -340,14 +339,7 @@ export function LoomyPluginCard({ t }: LoomyPluginCardProps): ReactElement {
                                   <span role="columnheader">{t('modelsColBill')}</span>
                                 </div>
                                 {models.filter(model => model.image !== true).map(model => renderModelRow(model, t))}
-                                {imageCount === 0
-                                  ? null
-                                  : (
-                                    <>
-                                      <div className={CSS.tableDivider} role="separator" />
-                                      {models.filter(model => model.image === true).map(model => renderModelRow(model, t))}
-                                    </>
-                                  )}
+                                {models.filter(model => model.image === true).map(model => renderModelRow(model, t))}
                               </div>
                             </>
                           )}

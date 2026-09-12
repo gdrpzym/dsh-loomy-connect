@@ -11,7 +11,7 @@ The plugin reads Loomy's on-disk sign-in session and model manifest read-only. N
 | Contribution | Surface | Description |
 |---|---|---|
 | Model provider | Host | Registers a `loomy` provider; the model list is discovered from Loomy at startup |
-| Settings card | Browser | Two tabs — **Account** and **Models** — under **Settings → Plugin configuration**: Account shows sign-in state, masked phone, and credit balance; Models lists each model's name, type, rate, and context window |
+| Settings card | Browser | Two tabs — **Account** and **Models** — under **Settings → Plugin configuration**: Account shows sign-in state, masked phone, and credit balance; Models renders a table of each model's name, context window, and rate, with image models sorted last |
 
 ## Contents
 
@@ -32,7 +32,7 @@ The plugin reads Loomy's on-disk sign-in session and model manifest read-only. N
 - **Model auto-discovery**: the account's model list is fetched at startup; only models with text output are served.
 - **Rates and promos**: the settings card's **Models** tab lists every model with its points multiplier (`x3.0`) and flags limited-time free ones, following Loomy's own numbers.
 - **Account and credits**: the card's status row shows the signed-in account (masked phone); the **Points** tab shows long-lived and daily credits — read from the same data Loomy's own UI renders from.
-- **Model details**: the **Models** tab lists each model's name, type (chat / image), points rate, and context window (when Loomy's list provides it).
+- **Model details**: the **Models** tab renders a three-column table of each model's name, context window (when Loomy's list provides it), and points rate; image models are listed after the chat models.
 - **Bilingual**: card copy follows the DSH interface language.
 
 ## Installation

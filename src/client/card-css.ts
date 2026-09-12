@@ -108,17 +108,22 @@ const STYLESHEET = `
 .dlc_tabActive{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
 .dlc_ctx{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5;white-space:nowrap;font-variant-numeric:tabular-nums}
 /* Models tab as a grid table: name / context / billing land in their own
-   columns; image generators sit below a divider instead of carrying a type
+   columns; image generators simply sort last instead of carrying a type
    chip, so the name column keeps the full width. The table is a vertical
    stack of per-row grids — the row grids share the same three-column track,
    which is what keeps header and rows aligned. */
-.dlc_table{margin:8px 0 0;display:flex;flex-direction:column}
-.dlc_tableHeader{align-items:center;display:grid;color:var(--dsw-alias-label-tertiary);font-size:12px;font-weight:500;line-height:1.5;padding:8px;text-align:left;column-gap:12px;grid-template-columns:minmax(120px,max-content) minmax(68px,1fr) minmax(72px,auto)}
-.dlc_tableRow{align-items:center;display:grid;border-bottom:.5px solid var(--dsw-alias-border-l2);padding:5px 8px;column-gap:12px;grid-template-columns:minmax(120px,max-content) minmax(68px,1fr) minmax(72px,auto)}
+.dlc_table{--dlc-cols:minmax(0,1fr) 84px 96px;margin:8px 0 0;display:flex;flex-direction:column}
+.dlc_tableHeader{align-items:center;display:grid;color:var(--dsw-alias-label-tertiary);font-size:12px;font-weight:500;line-height:1.5;padding:8px;text-align:left;column-gap:12px;grid-template-columns:var(--dlc-cols)}
+.dlc_tableRow{align-items:center;display:grid;border-bottom:.5px solid var(--dsw-alias-border-l2);padding:5px 8px;column-gap:12px;grid-template-columns:var(--dlc-cols)}
 .dlc_tableRow:last-child{border-bottom:0}
-.dlc_tableDivider{height:0;border-top:1px solid var(--dsw-alias-label-dimmed);margin:6px 0 2px}
 .dlc_tableCell{align-items:center;display:flex;gap:6px;min-width:0;text-align:left;justify-content:flex-start}
 .dlc_tableCell>.dlc_listName{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;white-space:normal}
+/* Context and billing are numbers, so their cells — and the header cells above
+   them — hug the right edge. The header spans need the flex context too, or
+   justify-content would have no effect on them. */
+.dlc_tableHeader>span{align-items:center;display:flex;min-width:0}
+.dlc_tableHeader>span+span{align-items:center;display:flex;min-width:0;justify-content:flex-end}
+.dlc_tableRow>.dlc_tableCell+span,.dlc_tableRow>.dlc_tableCell+.dlc_tableCell{justify-content:flex-end}
 .dlc_dash{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5}
 `
 
