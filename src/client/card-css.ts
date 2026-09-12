@@ -52,7 +52,6 @@ export const CSS = {
   tabs: 'dlc_tabs',
   tab: 'dlc_tab',
   tabActive: 'dlc_tabActive',
-  typeChip: 'dlc_typeChip',
   ctx: 'dlc_ctx',
   table: 'dlc_table',
   tableHeader: 'dlc_tableHeader',
@@ -107,16 +106,17 @@ const STYLESHEET = `
 .dlc_tab{appearance:none;font:inherit;cursor:pointer;background:0 0;border:0;color:var(--dsw-alias-label-tertiary);font-size:13px;font-weight:500;line-height:1.5;padding:6px 12px;border-radius:8px}
 .dlc_tab:hover{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-secondary)}
 .dlc_tabActive{background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-primary)}
-.dlc_typeChip{padding:1px 8px;border-radius:999px;font-size:11px;line-height:18px;white-space:nowrap;background:var(--dsw-alias-bg-layer-3);color:var(--dsw-alias-label-tertiary)}
 .dlc_ctx{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5;white-space:nowrap;font-variant-numeric:tabular-nums}
-/* Models tab as a grid table: name / type / context / billing land in their own
-   columns, so the type chip no longer squeezes the name and rows scan cleanly.
-   The table is a vertical stack of per-row grids — the row grids share the
-   same four-column track, which is what keeps header and rows aligned. */
+/* Models tab as a grid table: name / context / billing land in their own
+   columns; image generators sit below a divider instead of carrying a type
+   chip, so the name column keeps the full width. The table is a vertical
+   stack of per-row grids — the row grids share the same three-column track,
+   which is what keeps header and rows aligned. */
 .dlc_table{margin:8px 0 0;display:flex;flex-direction:column}
-.dlc_tableHeader{align-items:center;display:grid;color:var(--dsw-alias-label-tertiary);font-size:12px;font-weight:500;line-height:1.5;padding:8px;text-align:left;column-gap:12px;grid-template-columns:minmax(120px,max-content) minmax(56px,auto) minmax(68px,1fr) minmax(72px,auto)}
-.dlc_tableRow{align-items:center;display:grid;border-bottom:.5px solid var(--dsw-alias-border-l2);padding:5px 8px;column-gap:12px;grid-template-columns:minmax(120px,max-content) minmax(56px,auto) minmax(68px,1fr) minmax(72px,auto)}
+.dlc_tableHeader{align-items:center;display:grid;color:var(--dsw-alias-label-tertiary);font-size:12px;font-weight:500;line-height:1.5;padding:8px;text-align:left;column-gap:12px;grid-template-columns:minmax(120px,max-content) minmax(68px,1fr) minmax(72px,auto)}
+.dlc_tableRow{align-items:center;display:grid;border-bottom:.5px solid var(--dsw-alias-border-l2);padding:5px 8px;column-gap:12px;grid-template-columns:minmax(120px,max-content) minmax(68px,1fr) minmax(72px,auto)}
 .dlc_tableRow:last-child{border-bottom:0}
+.dlc_tableDivider{height:0;border-top:1px solid var(--dsw-alias-label-dimmed);margin:6px 0 2px}
 .dlc_tableCell{align-items:center;display:flex;gap:6px;min-width:0;text-align:left;justify-content:flex-start}
 .dlc_tableCell>.dlc_listName{flex:1 1 auto;min-width:0;overflow-wrap:anywhere;white-space:normal}
 .dlc_dash{color:var(--dsw-alias-label-tertiary);font-size:12px;line-height:1.5}
